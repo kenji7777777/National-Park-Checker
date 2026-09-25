@@ -1,0 +1,2284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a2e1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="National Parks">
+  <title>US National Parks Checklist</title>
+  <link id="manifest-link" rel="manifest">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow-x: hidden; }
+    * { -webkit-tap-highlight-color: transparent; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2a4a2a; border-radius: 2px; }
+    #offline-banner {
+      display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+      background: #5a3a1a; color: #f0d8a8; text-align: center; font-size: 12px;
+      padding: 6px 0; font-family: Georgia, serif;
+    }
+    #offline-banner.show { display: block; }
+    #install-prompt {
+      display: none; position: fixed; bottom: 16px; left: 16px; right: 16px; z-index: 9998;
+      background: #1a3a1a; border: 1px solid #3a6a3a; border-radius: 12px; padding: 12px 16px;
+      color: #a8d4a8; font-family: Georgia, serif; font-size: 13px;
+      align-items: center; justify-content: space-between; gap: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    #install-prompt.show { display: flex; }
+    #install-prompt button {
+      background: #2a5a2a; border: 1px solid #4a8a4a; color: #a8d4a8;
+      border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-family: inherit;
+    }
+    #install-prompt .dismiss { background: transparent; border: 1px solid #2a3a2a; color: #6a8a6a; }
+  </style>
+</head>
+<body>
+  <div id="offline-banner">📡 Offline mode — your data is safe and syncs when you\'re back online</div>
+  <div id="root">
+    <div id="boot-status" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a1410;color:#a8d4a8;font-family:Georgia,serif;padding:24px;text-align:center;">
+      <div>
+        <div style="font-size:28px;margin-bottom:12px;">🏔️</div>
+        <div style="font-size:14px;opacity:0.8;">Loading…</div>
+      </div>
+    </div>
+  </div>
+  <div id="install-prompt">
+    <span>📲 Add to Home Screen for offline access</span>
+    <div style="display:flex;gap:6px;flex-shrink:0;">
+      <button id="install-btn">Install</button>
+      <button class="dismiss" id="dismiss-btn">✕</button>
+    </div>
+  </div>
+
+  <script>
+    // Fallback: if the app hasn't mounted within a few seconds (CDN blocked,
+    // offline, or a script error), replace the loading state with a visible
+    // diagnostic message instead of staying blank forever.
+    window.__bootOk = false;
+    window.addEventListener("error", function (e) {
+      showBootError((e && e.message) ? e.message : "Unknown script error");
+    });
+    function showBootError(detail) {
+      if (window.__bootOk) return;
+      var el = document.getElementById("boot-status");
+      if (!el) return;
+      el.innerHTML =
+        '<div style="max-width:420px;">' +
+        '<div style="font-size:28px;margin-bottom:12px;">⚠️</div>' +
+        '<div style="font-size:15px;margin-bottom:10px;">Failed to load the app.</div>' +
+        '<div style="font-size:12px;opacity:0.75;margin-bottom:14px;">This page needs an internet connection the first time it loads (it fetches React from a CDN). If you opened this file directly on your phone, try opening it from its GitHub Pages web link instead.</div>' +
+        '<div style="font-size:10px;opacity:0.5;word-break:break-word;">' + String(detail).replace(/</g,"&lt;") + '</div>' +
+        '</div>';
+    }
+    window.__bootTimer = setTimeout(function () {
+      if (!window.__bootOk) showBootError("Timed out waiting for the app to start (CDN scripts may be blocked or still loading).");
+    }, 8000);
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" onerror="showBootError('Could not load React from cdnjs.cloudflare.com')"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" onerror="showBootError('Could not load ReactDOM from cdnjs.cloudflare.com')"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js" onerror="showBootError('Could not load Babel from cdnjs.cloudflare.com')"></script>
+
+  <script>
+    const manifest = {
+      name: "US National Parks Checklist",
+      short_name: "NatParks",
+      start_url: ".",
+      display: "standalone",
+      background_color: "#0a0f0a",
+      theme_color: "#1a2e1a",
+      icons: [
+        { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231a2e1a'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle'%3E%F0%9F%8F%9C%EF%B8%8F%3C/text%3E%3C/svg%3E", sizes: "192x192", type: "image/svg+xml" }
+      ]
+    };
+    const manifestBlob = new Blob([JSON.stringify(manifest)], { type: "application/json" });
+    document.getElementById("manifest-link").href = URL.createObjectURL(manifestBlob);
+
+    if ("serviceWorker" in navigator) {
+      const swCode = `
+        const CACHE_NAME = "natparks-v9";
+        self.addEventListener("install", (e) => {
+          self.skipWaiting();
+        });
+        self.addEventListener("activate", (e) => {
+          e.waitUntil(
+            caches.keys().then((keys) =>
+              Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+            ).then(() => clients.claim())
+          );
+        });
+        self.addEventListener("fetch", (e) => {
+          if (e.request.method !== "GET") return;
+          e.respondWith(
+            caches.open(CACHE_NAME).then((cache) =>
+              cache.match(e.request).then((cached) => {
+                const fetchPromise = fetch(e.request).then((networkResponse) => {
+                  if (networkResponse && networkResponse.status === 200) {
+                    cache.put(e.request, networkResponse.clone());
+                  }
+                  return networkResponse;
+                }).catch(() => cached);
+                return cached || fetchPromise;
+              })
+            )
+          );
+        });
+      `;
+      const swBlob = new Blob([swCode], { type: "application/javascript" });
+      const swUrl = URL.createObjectURL(swBlob);
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register(swUrl).catch(() => {});
+      });
+    }
+
+    function updateOnlineStatus() {
+      const banner = document.getElementById("offline-banner");
+      if (navigator.onLine) banner.classList.remove("show");
+      else banner.classList.add("show");
+    }
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
+    updateOnlineStatus();
+
+    let deferredPrompt;
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (!sessionStorage.getItem("installDismissed") && !window.matchMedia("(display-mode: standalone)").matches) {
+        document.getElementById("install-prompt").classList.add("show");
+      }
+    });
+    document.getElementById("install-btn").addEventListener("click", async () => {
+      document.getElementById("install-prompt").classList.remove("show");
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+      }
+    });
+    document.getElementById("dismiss-btn").addEventListener("click", () => {
+      document.getElementById("install-prompt").classList.remove("show");
+      sessionStorage.setItem("installDismissed", "1");
+    });
+  </script>
+
+  <script type="text/babel">
+
+// Storage: profiles saved as { [profileId]: { name, visits } }
+const STORAGE_KEY = "np_profiles_v1";
+const LANG_KEY    = "np_lang_v1";
+const THEME_KEY   = "np_theme_v1";
+
+const parks = [
+  { id:1,  name:"Acadia",                      ja:"アケイディア",                     state:"Maine",                      stateJa:"メイン州",                    region:"Northeast",       regionJa:"北東部",      emoji:"🏔️", lat:44.35,  lng:-68.21  },
+  { id:2,  name:"American Samoa",               ja:"アメリカン・サモア",               state:"American Samoa",             stateJa:"アメリカ領サモア",            region:"Pacific",         regionJa:"北米・太平洋", emoji:"🏄", lat:-14.25, lng:-170.68 },
+  { id:3,  name:"Arches",                       ja:"アーチーズ",                       state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🌅", lat:38.68,  lng:-109.57 },
+  { id:4,  name:"Badlands",                     ja:"バッドランズ",                     state:"South Dakota",               stateJa:"サウスダコタ州",              region:"Midwest",         regionJa:"中西部",      emoji:"🗿", lat:43.85,  lng:-102.34 },
+  { id:5,  name:"Big Bend",                     ja:"ビッグ・ベンド",                   state:"Texas",                      stateJa:"テキサス州",                  region:"Southwest",       regionJa:"南西部",      emoji:"🌵", lat:29.25,  lng:-103.25 },
+  { id:6,  name:"Biscayne",                     ja:"ビスケーン",                       state:"Florida",                    stateJa:"フロリダ州",                  region:"Southeast",       regionJa:"南東部",      emoji:"🐠", lat:25.48,  lng:-80.43  },
+  { id:7,  name:"Black Canyon of the Gunnison", ja:"ブラック・キャニオン",             state:"Colorado",                   stateJa:"コロラド州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🖤", lat:38.57,  lng:-107.72 },
+  { id:8,  name:"Bryce Canyon",                 ja:"ブライスキャニオン",               state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🔴", lat:37.59,  lng:-112.18 },
+  { id:9,  name:"Canyonlands",                  ja:"キャニオンランズ",                 state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🌄", lat:38.20,  lng:-109.93 },
+  { id:10, name:"Capitol Reef",                 ja:"キャピトル・リーフ",               state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🪨", lat:38.09,  lng:-111.15 },
+  { id:11, name:"Carlsbad Caverns",             ja:"カールスバッド・キャバーンズ",     state:"New Mexico",                 stateJa:"ニューメキシコ州",            region:"Southwest",       regionJa:"南西部",      emoji:"🦇", lat:32.14,  lng:-104.55 },
+  { id:12, name:"Channel Islands",              ja:"チャンネル・アイランズ",           state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🦭", lat:34.01,  lng:-119.42 },
+  { id:13, name:"Congaree",                     ja:"コンガリー",                       state:"South Carolina",             stateJa:"サウスカロライナ州",          region:"Southeast",       regionJa:"南東部",      emoji:"🌳", lat:33.78,  lng:-80.78  },
+  { id:14, name:"Crater Lake",                  ja:"クレーター・レイク",               state:"Oregon",                     stateJa:"オレゴン州",                  region:"West Coast",      regionJa:"西海岸",      emoji:"🔵", lat:42.94,  lng:-122.10 },
+  { id:15, name:"Cuyahoga Valley",              ja:"クヤホガ・バレー",                 state:"Ohio",                       stateJa:"オハイオ州",                  region:"Midwest",         regionJa:"中西部",      emoji:"🌊", lat:41.24,  lng:-81.55  },
+  { id:16, name:"Death Valley",                 ja:"デス・バレー",                     state:"California / Nevada",        stateJa:"カリフォルニア/ネバダ州",     region:"West Coast",      regionJa:"西海岸",      emoji:"☀️", lat:36.24,  lng:-116.82 },
+  { id:17, name:"Denali",                       ja:"デナリ",                           state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🐻", lat:63.33,  lng:-150.50 },
+  { id:18, name:"Dry Tortugas",                 ja:"ドライ・トートゥガス",             state:"Florida",                    stateJa:"フロリダ州",                  region:"Southeast",       regionJa:"南東部",      emoji:"🏝️", lat:24.63,  lng:-82.87  },
+  { id:19, name:"Everglades",                   ja:"エバーグレーズ",                   state:"Florida",                    stateJa:"フロリダ州",                  region:"Southeast",       regionJa:"南東部",      emoji:"🐊", lat:25.39,  lng:-80.93  },
+  { id:20, name:"Gates of the Arctic",          ja:"ゲーツ・オブ・ジ・アークティック", state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌌", lat:67.78,  lng:-153.30 },
+  { id:21, name:"Gateway Arch",                 ja:"ゲートウェイ・アーチ",             state:"Missouri",                   stateJa:"ミズーリ州",                  region:"Midwest",         regionJa:"中西部",      emoji:"🏛️", lat:38.62,  lng:-90.18  },
+  { id:22, name:"Glacier",                      ja:"グレイシャー",                     state:"Montana",                    stateJa:"モンタナ州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🧊", lat:48.69,  lng:-113.72 },
+  { id:23, name:"Glacier Bay",                  ja:"グレイシャー・ベイ",               state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🧊", lat:58.50,  lng:-137.00 },
+  { id:24, name:"Grand Canyon",                 ja:"グランドキャニオン",               state:"Arizona",                    stateJa:"アリゾナ州",                  region:"Southwest",       regionJa:"南西部",      emoji:"🏜️", lat:36.10,  lng:-112.11 },
+  { id:25, name:"Grand Teton",                  ja:"グランド・ティートン",             state:"Wyoming",                    stateJa:"ワイオミング州",              region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🏔️", lat:43.73,  lng:-110.80 },
+  { id:26, name:"Great Basin",                  ja:"グレート・ベイスン",               state:"Nevada",                     stateJa:"ネバダ州",                    region:"Southwest",       regionJa:"南西部",      emoji:"⭐", lat:38.98,  lng:-114.30 },
+  { id:27, name:"Great Sand Dunes",             ja:"グレート・サンド・デューンズ",     state:"Colorado",                   stateJa:"コロラド州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🏜️", lat:37.73,  lng:-105.51 },
+  { id:28, name:"Great Smoky Mountains",        ja:"グレート・スモーキー山地",         state:"Tennessee / North Carolina", stateJa:"テネシー/ノースカロライナ州", region:"Southeast",       regionJa:"南東部",      emoji:"🌫️", lat:35.61,  lng:-83.50  },
+  { id:29, name:"Guadalupe Mountains",          ja:"グアダルーペ山地",                 state:"Texas",                      stateJa:"テキサス州",                  region:"Southwest",       regionJa:"南西部",      emoji:"⛰️", lat:31.92,  lng:-104.87 },
+  { id:30, name:"Haleakalā",                    ja:"ハレアカラ",                       state:"Hawaii",                     stateJa:"ハワイ州",                    region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌺", lat:20.72,  lng:-156.15 },
+  { id:31, name:"Hawaiʻi Volcanoes",            ja:"ハワイ火山",                       state:"Hawaii",                     stateJa:"ハワイ州",                    region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌋", lat:19.43,  lng:-155.26 },
+  { id:32, name:"Hot Springs",                  ja:"ホット・スプリングス",             state:"Arkansas",                   stateJa:"アーカンソー州",              region:"Southeast",       regionJa:"南東部",      emoji:"♨️", lat:34.52,  lng:-93.05  },
+  { id:33, name:"Indiana Dunes",                ja:"インディアナ・デューンズ",         state:"Indiana",                    stateJa:"インディアナ州",              region:"Midwest",         regionJa:"中西部",      emoji:"🏖️", lat:41.65,  lng:-87.05  },
+  { id:34, name:"Isle Royale",                  ja:"アイル・ロワイヤル",               state:"Michigan",                   stateJa:"ミシガン州",                  region:"Midwest",         regionJa:"中西部",      emoji:"🐺", lat:48.00,  lng:-88.83  },
+  { id:35, name:"Joshua Tree",                  ja:"ジョシュアツリー",                 state:"California",                 stateJa:"カリフォルニア州",            region:"Southwest",       regionJa:"南西部",      emoji:"🌵", lat:33.87,  lng:-115.90 },
+  { id:36, name:"Katmai",                       ja:"カトマイ",                         state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🐟", lat:58.50,  lng:-154.00 },
+  { id:37, name:"Kenai Fjords",                 ja:"ケナイ・フィヨルド",               state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌊", lat:59.92,  lng:-150.17 },
+  { id:38, name:"Kings Canyon",                 ja:"キングス・キャニオン",             state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"👑", lat:36.88,  lng:-118.55 },
+  { id:39, name:"Kobuk Valley",                 ja:"コブク・バレー",                   state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🏜️", lat:67.33,  lng:-159.12 },
+  { id:40, name:"Lake Clark",                   ja:"レイク・クラーク",                 state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🐋", lat:60.97,  lng:-153.42 },
+  { id:41, name:"Lassen Volcanic",              ja:"ラッセン・ボルカニック",           state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🌋", lat:40.49,  lng:-121.51 },
+  { id:42, name:"Mammoth Cave",                 ja:"マンモス・ケーブ",                 state:"Kentucky",                   stateJa:"ケンタッキー州",              region:"Southeast",       regionJa:"南東部",      emoji:"🕳️", lat:37.18,  lng:-86.10  },
+  { id:43, name:"Mesa Verde",                   ja:"メサ・ベルデ",                     state:"Colorado",                   stateJa:"コロラド州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🏺", lat:37.18,  lng:-108.49 },
+  { id:44, name:"Mount Rainier",                ja:"マウント・レーニア",               state:"Washington",                 stateJa:"ワシントン州",                region:"West Coast",      regionJa:"西海岸",      emoji:"🌋", lat:46.85,  lng:-121.75 },
+  { id:45, name:"New River Gorge",              ja:"ニュー・リバー・ゴージ",           state:"West Virginia",              stateJa:"ウェストバージニア州",        region:"Northeast",       regionJa:"北東部",      emoji:"🌉", lat:37.87,  lng:-80.99  },
+  { id:46, name:"North Cascades",               ja:"ノース・カスケーズ",               state:"Washington",                 stateJa:"ワシントン州",                region:"West Coast",      regionJa:"西海岸",      emoji:"🏔️", lat:48.70,  lng:-121.20 },
+  { id:47, name:"Olympic",                      ja:"オリンピック",                     state:"Washington",                 stateJa:"ワシントン州",                region:"West Coast",      regionJa:"西海岸",      emoji:"🌊", lat:47.97,  lng:-123.50 },
+  { id:48, name:"Petrified Forest",             ja:"ペトリファイド・フォレスト",       state:"Arizona",                    stateJa:"アリゾナ州",                  region:"Southwest",       regionJa:"南西部",      emoji:"🪵", lat:35.07,  lng:-109.78 },
+  { id:49, name:"Pinnacles",                    ja:"ピナクルズ",                       state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🦅", lat:36.49,  lng:-121.20 },
+  { id:50, name:"Redwood",                      ja:"レッドウッド",                     state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🌲", lat:41.30,  lng:-124.00 },
+  { id:51, name:"Rocky Mountain",               ja:"ロッキー山地",                     state:"Colorado",                   stateJa:"コロラド州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🦌", lat:40.40,  lng:-105.58 },
+  { id:52, name:"Saguaro",                      ja:"サワロ",                           state:"Arizona",                    stateJa:"アリゾナ州",                  region:"Southwest",       regionJa:"南西部",      emoji:"🌵", lat:32.25,  lng:-110.50 },
+  { id:53, name:"Sequoia",                      ja:"セコイア",                         state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🌳", lat:36.43,  lng:-118.68 },
+  { id:54, name:"Shenandoah",                   ja:"シェナンドー",                     state:"Virginia",                   stateJa:"バージニア州",                region:"Northeast",       regionJa:"北東部",      emoji:"🌿", lat:38.53,  lng:-78.35  },
+  { id:55, name:"Theodore Roosevelt",           ja:"セオドア・ルーズベルト",           state:"North Dakota",               stateJa:"ノースダコタ州",              region:"Midwest",         regionJa:"中西部",      emoji:"🦬", lat:46.97,  lng:-103.45 },
+  { id:56, name:"Virgin Islands",               ja:"バージン諸島",                     state:"U.S. Virgin Islands",        stateJa:"バージン諸島",                region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌴", lat:18.34,  lng:-64.73  },
+  { id:57, name:"Voyageurs",                    ja:"ボイジャーズ",                     state:"Minnesota",                  stateJa:"ミネソタ州",                  region:"Midwest",         regionJa:"中西部",      emoji:"🛶", lat:48.49,  lng:-92.83  },
+  { id:58, name:"White Sands",                  ja:"ホワイト・サンズ",                 state:"New Mexico",                 stateJa:"ニューメキシコ州",            region:"Southwest",       regionJa:"南西部",      emoji:"🏳️", lat:32.77,  lng:-106.17 },
+  { id:59, name:"Wind Cave",                    ja:"ウィンド・ケーブ",                 state:"South Dakota",               stateJa:"サウスダコタ州",              region:"Midwest",         regionJa:"中西部",      emoji:"💨", lat:43.57,  lng:-103.48 },
+  { id:60, name:"Wrangell–St. Elias",           ja:"ランゲル・セント・イライアス",     state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🏔️", lat:61.70,  lng:-142.99 },
+  { id:61, name:"Yellowstone",                  ja:"イエローストーン",                 state:"Wyoming",                    stateJa:"ワイオミング州",              region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🌋", lat:44.60,  lng:-110.50 },
+  { id:62, name:"Yosemite",                     ja:"ヨセミテ",                         state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🌲", lat:37.87,  lng:-119.54 },
+  { id:63, name:"Zion",                         ja:"ザイオン",                         state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🏛️", lat:37.29,  lng:-113.05 },
+];
+
+const REGION_ORDER = ["Northeast","Southeast","Midwest","Southwest","Rocky Mountains","West Coast","Pacific"];
+
+// ── Site-wide themes ────────────────────────────────────────────────
+const THEMES = {
+  passport: {
+    label: "🏔", labelJa:"🏔", name:"Passport", nameJa:"パスポート",
+    fontBody: "'Georgia','Times New Roman',serif",
+    bg:"#0a0f0a", headerBg:"linear-gradient(180deg,#1a2e1a,#0a1a0a)", headerBorder:"#2a4a2a",
+    textPrimary:"#e8dcc8", textSecondary:"#7a8a7a", accentText:"#a8d4a8", mutedText:"#6a8a6a",
+    cardBg:"#0d150d", cardBgAlt:"#0f1f0f", cardBorder:"#1a2a1a", cardBorderActive:"#4a8a4a",
+    inputBg:"#111a11", inputBorder:"#2a3a2a",
+    chipBgActive:"#2a4a2a", chipBorderActive:"#4a7a4a", chipText:"#6a8a6a", chipTextActive:"#a8d4a8",
+    btnBgActive:"#2a5a2a", btnBorderActive:"#5a9a5a",
+    progressTrack:"#1a2e1a", progressFill:"linear-gradient(90deg,#4a7a4a,#8acc8a)",
+    mapBg:"#0a1a2a", mapBorder:"#1a3a2a", mapLand:"#1a2e1a", mapLandBorder:"#3a6a4a",
+    mapGrid:"#132a1a", mapStateLabel:"#3a5a48", tooltipText:"#d4c8b0",
+    pinVisited:"#4acc4a", pinVisitedBorder:"#8aff8a", pinVisitedRing:"#4acc4a",
+    pinUnvisited:"#3a6a5a", pinUnvisitedBorder:"#2a5a4a", pinUnvisitedDot:"#1a3a2e",
+    pinCheckmark:"#0a1a0a", pinBadge:"#8aff8a",
+  },
+  topo: {
+    label:"🗺", labelJa:"🗺", name:"Topo Map", nameJa:"地形図",
+    fontBody: "'Courier New',monospace",
+    bg:"#0d1712", headerBg:"linear-gradient(180deg,#12241a,#0a1610)", headerBorder:"#2a5a3a",
+    textPrimary:"#eafbea", textSecondary:"#5a9a6a", accentText:"#4adc6a", mutedText:"#5a9a6a",
+    cardBg:"#0f1f14", cardBgAlt:"#132a1a", cardBorder:"#1a3a24", cardBorderActive:"#3adc5a",
+    inputBg:"#0f1f14", inputBorder:"#2a5a3a",
+    chipBgActive:"#153a20", chipBorderActive:"#3a8a4a", chipText:"#5a9a6a", chipTextActive:"#4adc6a",
+    btnBgActive:"#1a5a2a", btnBorderActive:"#3adc5a",
+    progressTrack:"#152a18", progressFill:"linear-gradient(90deg,#2a8a3a,#4adc6a)",
+    mapBg:"#0d1712", mapBorder:"#2a5a3a", mapLand:"#152a18", mapLandBorder:"#3a8a4a",
+    mapGrid:"#1a3a24", mapStateLabel:"#3a7a4a", tooltipText:"#eafbea",
+    pinVisited:"#3adc5a", pinVisitedBorder:"#8af0a0", pinVisitedRing:"#3adc5a",
+    pinUnvisited:"#2a5a3a", pinUnvisitedBorder:"#1a4a2a", pinUnvisitedDot:"#123a20",
+    pinCheckmark:"#0a1a0a", pinBadge:"#8af0a0",
+  },
+  retro: {
+    label:"🎨", labelJa:"🎨", name:"Retro", nameJa:"レトロ",
+    fontBody: "'Georgia','Times New Roman',serif",
+    bg:"#e8d5a8", headerBg:"linear-gradient(180deg,#dcc090,#e8d5a8)", headerBorder:"#8a3a2a",
+    textPrimary:"#4a2a1a", textSecondary:"#6a4a2a", accentText:"#8a3a2a", mutedText:"#7a5a3a",
+    cardBg:"#dcc898", cardBgAlt:"#d4bc84", cardBorder:"#c8a868", cardBorderActive:"#8a3a2a",
+    inputBg:"#f0e4c4", inputBorder:"#c8a868",
+    chipBgActive:"#8a3a2a", chipBorderActive:"#5a2a1a", chipText:"#7a5a3a", chipTextActive:"#f0e4c4",
+    btnBgActive:"#8a3a2a", btnBorderActive:"#5a2a1a",
+    progressTrack:"#c8b078", progressFill:"linear-gradient(90deg,#c85a30,#e0803a)",
+    mapBg:"#dcc898", mapBorder:"#8a3a2a", mapLand:"#d4bc84", mapLandBorder:"#8a3a2a",
+    mapGrid:"#c8b078", mapStateLabel:"#8a5a3a", tooltipText:"#4a2a1a",
+    pinVisited:"#c85a30", pinVisitedBorder:"#8a3a2a", pinVisitedRing:"#c85a30",
+    pinUnvisited:"#b8a068", pinUnvisitedBorder:"#8a5a3a", pinUnvisitedDot:"#9a8858",
+    pinCheckmark:"#f0e4c4", pinBadge:"#8a3a2a",
+  },
+};
+
+// ── Badge / Achievement definitions ─────────────────────────────────
+// check(ctx) receives { totalChecked, regionCounts, visits, checked, parks } and returns true/false
+const BADGES = [
+  { id:"first_steps", icon:"🥾", name:"First Steps", nameJa:"最初の一歩",
+    desc:"Visit your first park", descJa:"最初の1公園を訪問する",
+    check: ({totalChecked}) => totalChecked >= 1 },
+  { id:"five_parks", icon:"🏕️", name:"Weekend Wanderer", nameJa:"週末ワンダラー",
+    desc:"Visit 5 parks", descJa:"5公園を訪問する",
+    check: ({totalChecked}) => totalChecked >= 5 },
+  { id:"fifteen_parks", icon:"🎒", name:"Trail Hunter", nameJa:"トレイルハンター",
+    desc:"Visit 15 parks", descJa:"15公園を訪問する",
+    check: ({totalChecked}) => totalChecked >= 15 },
+  { id:"thirty_parks", icon:"⛰️", name:"Park Veteran", nameJa:"パークベテラン",
+    desc:"Visit 30 parks", descJa:"30公園を訪問する",
+    check: ({totalChecked}) => totalChecked >= 30 },
+  { id:"all_parks", icon:"👑", name:"Grand Master", nameJa:"グランドマスター",
+    desc:"Visit all 63 parks", descJa:"全63公園を訪問する",
+    check: ({totalChecked}) => totalChecked >= 63 },
+  { id:"west_coast", icon:"🌊", name:"West Coast Complete", nameJa:"西海岸コンプリート",
+    desc:"Visit every West Coast park", descJa:"西海岸の全公園を訪問する",
+    check: ({regionCounts}) => regionCounts["West Coast"]?.done >= regionCounts["West Coast"]?.total },
+  { id:"southwest", icon:"🌵", name:"Southwest Complete", nameJa:"南西部コンプリート",
+    desc:"Visit every Southwest park", descJa:"南西部の全公園を訪問する",
+    check: ({regionCounts}) => regionCounts["Southwest"]?.done >= regionCounts["Southwest"]?.total },
+  { id:"northeast", icon:"🍁", name:"Northeast Complete", nameJa:"北東部コンプリート",
+    desc:"Visit every Northeast park", descJa:"北東部の全公園を訪問する",
+    check: ({regionCounts}) => regionCounts["Northeast"]?.done >= regionCounts["Northeast"]?.total },
+  { id:"rocky_mountains", icon:"🏔️", name:"Rocky Mountains Complete", nameJa:"ロッキー山脈コンプリート",
+    desc:"Visit every Rocky Mountains park", descJa:"ロッキー山脈の全公園を訪問する",
+    check: ({regionCounts}) => regionCounts["Rocky Mountains"]?.done >= regionCounts["Rocky Mountains"]?.total },
+  { id:"alaska_adventurer", icon:"🐻", name:"Alaska Adventurer", nameJa:"アラスカ探検家",
+    desc:"Visit 3 parks in Alaska", descJa:"アラスカの公園を3つ訪問する",
+    check: ({checked}) => parks.filter(p=>p.state==="Alaska"&&checked[p.id]).length >= 3 },
+  { id:"repeat_visitor", icon:"🔁", name:"Repeat Visitor", nameJa:"リピーター",
+    desc:"Visit the same park twice", descJa:"同じ公園に2回以上訪問する",
+    check: ({visits}) => Object.values(visits).some(v => v.length >= 2) },
+  { id:"same_month", icon:"📅", name:"Road Trip", nameJa:"ロードトリップ",
+    desc:"Visit 3+ parks in the same month", descJa:"同じ月に3公園以上訪問する",
+    check: ({visits}) => {
+      const months = {};
+      Object.values(visits).forEach(arr => arr.forEach(v => {
+        const m = v.date.slice(0,7);
+        months[m] = (months[m]||0) + 1;
+      }));
+      return Object.values(months).some(c => c >= 3);
+    } },
+];
+
+function computeEarnedBadges(visits, checked) {
+  const totalChecked = Object.values(checked).filter(Boolean).length;
+  const regionCounts = {};
+  REGION_ORDER.forEach(key => {
+    const total = parks.filter(p => p.region === key).length;
+    const done  = parks.filter(p => p.region === key && checked[p.id]).length;
+    regionCounts[key] = { done, total };
+  });
+  const ctx = { totalChecked, regionCounts, visits, checked, parks };
+  return BADGES.filter(b => { try { return b.check(ctx); } catch { return false; } }).map(b => b.id);
+}
+
+// ── Quests: themed multi-park routes ────────────────────────────────
+const QUESTS = [
+  { id:"appalachian", icon:"🍂", name:"Appalachian Trailblazer", nameJa:"アパラチアン・トレイルブレイザー",
+    desc:"Explore the green valleys and gorges of the eastern woodlands", descJa:"東部の緑豊かな渓谷と森林地帯を巡る",
+    parkIds:[15,45,54,13] },
+  { id:"desert_frontier", icon:"🏜️", name:"Desert Frontiers", nameJa:"デザート・フロンティア",
+    desc:"Cross the vast desert borderlands from Texas to New Mexico", descJa:"テキサスからニューメキシコへ広がる砂漠の国境地帯を制覇する",
+    parkIds:[5,58] },
+  { id:"giant_forest", icon:"🌳", name:"Giants of the Forest", nameJa:"ジャイアント・フォレスト",
+    desc:"Stand among California's tallest trees and deepest canyons", descJa:"カリフォルニアの巨木と深い渓谷を巡る",
+    parkIds:[53,38] },
+  { id:"ring_of_fire", icon:"🌋", name:"Ring of Fire", nameJa:"リング・オブ・ファイア",
+    desc:"Visit parks shaped by volcanic activity", descJa:"火山活動によって形成された公園を巡る",
+    parkIds:[41,31,61,23] },
+  { id:"underground", icon:"🕳️", name:"Underground Explorer", nameJa:"アンダーグラウンド・エクスプローラー",
+    desc:"Descend into America's greatest cave systems", descJa:"アメリカ最大級の洞窟群を探検する",
+    parkIds:[11,42,59] },
+  { id:"last_frontier", icon:"🐻", name:"The Last Frontier", nameJa:"ラスト・フロンティア",
+    desc:"Conquer all 8 national parks of Alaska", descJa:"アラスカの全8国立公園を制覇する",
+    parkIds:[17,20,23,36,37,39,40,60] },
+  { id:"golden_state", icon:"☀️", name:"Golden State Circuit", nameJa:"ゴールデンステート・サーキット",
+    desc:"Tour every national park within California", descJa:"カリフォルニア州内の全公園を巡る",
+    parkIds:[12,16,35,38,41,49,50,53] },
+  { id:"canyon_country", icon:"🏛️", name:"Canyon Country", nameJa:"キャニオン・カントリー",
+    desc:"Explore Utah's legendary red rock canyons", descJa:"ユタ州の伝説的な赤い岩の渓谷を巡る",
+    parkIds:[3,8,9,10,63] },
+  { id:"island_hopper", icon:"🏝️", name:"Island Hopper", nameJa:"アイランド・ホッパー",
+    desc:"Reach the parks scattered across the Pacific and Caribbean", descJa:"太平洋とカリブ海に散らばる島の公園を訪れる",
+    parkIds:[2,30,31,56] },
+];
+
+function computeQuestProgress(checked) {
+  return QUESTS.map(q => {
+    const done = q.parkIds.filter(id => checked[id]).length;
+    const total = q.parkIds.length;
+    return { ...q, done, total, complete: done === total };
+  });
+}
+
+// ── Tag-based badges: loose keyword detection in visit notes ────────
+const TAG_BADGES = [
+  { id:"stargazer", icon:"✨", name:"Stargazer", nameJa:"スターゲイザー",
+    desc:"Log a visit mentioning stars or night sky", descJa:"星や夜空について記録する",
+    keywords:{en:["star","stars","night sky","milky way"], ja:["星","夜空","天の川"]} },
+  { id:"backcountry", icon:"⛺", name:"Backcountry Master", nameJa:"バックカントリー・マスター",
+    desc:"Log a visit mentioning camping", descJa:"キャンプ・テント泊について記録する",
+    keywords:{en:["camp","camping","tent"], ja:["キャンプ","テント","野営"]} },
+  { id:"bark_ranger", icon:"🐾", name:"Bark Ranger", nameJa:"バーク・レンジャー",
+    desc:"Log a visit mentioning your dog", descJa:"犬との訪問について記録する",
+    keywords:{en:["dog","puppy"], ja:["犬","わんこ","ワンコ"]} },
+  { id:"waterway", icon:"🛶", name:"Waterway Voyager", nameJa:"ウォーターウェイ・ボイジャー",
+    desc:"Log a visit mentioning water, lake, or river", descJa:"湖や川など水にまつわる訪問を記録する",
+    keywords:{en:["lake","river","canoe","kayak","water","boat"], ja:["湖","川","カヌー","カヤック","水","ボート"]} },
+  { id:"summit", icon:"⛰️", name:"Summit Seeker", nameJa:"サミット・シーカー",
+    desc:"Log a visit mentioning a hike or summit", descJa:"登山・サミットについて記録する",
+    keywords:{en:["hike","hiking","summit","peak","trail"], ja:["登山","ハイキング","山頂","トレイル"]} },
+  { id:"wildlife", icon:"🦌", name:"Wildlife Spotter", nameJa:"ワイルドライフ・スポッター",
+    desc:"Log a visit mentioning wildlife", descJa:"野生動物について記録する",
+    keywords:{en:["bear","elk","moose","wildlife","animal"], ja:["クマ","熊","動物","野生"]} },
+];
+
+function computeTagBadges(visits) {
+  const allNotes = Object.values(visits).flat().map(v => (v.note || "").toLowerCase());
+  if (allNotes.length === 0) return [];
+  return TAG_BADGES.filter(tb => {
+    const allKeywords = [...tb.keywords.en, ...tb.keywords.ja].map(k => k.toLowerCase());
+    return allNotes.some(note => allKeywords.some(kw => note.includes(kw)));
+  }).map(tb => tb.id);
+}
+
+// ── National Park Streak: longest run of parks visited on one trip ──
+// Visits within TRIP_GAP_DAYS of each other are grouped into the same "trip".
+const TRIP_GAP_DAYS = 7;
+
+function computeTripStreaks(visits) {
+  // Flatten all visits into { parkId, date } entries, sorted chronologically
+  const entries = [];
+  Object.entries(visits).forEach(([parkId, arr]) => {
+    (arr || []).forEach(v => entries.push({ parkId: Number(parkId), date: v.date }));
+  });
+  entries.sort((a, b) => a.date.localeCompare(b.date));
+  if (entries.length === 0) return { trips: [], longest: null };
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const trips = [];
+  let current = [entries[0]];
+
+  for (let i = 1; i < entries.length; i++) {
+    const prevDate = new Date(current[current.length-1].date + "T12:00:00");
+    const currDate = new Date(entries[i].date + "T12:00:00");
+    const gapDays = Math.round((currDate - prevDate) / dayMs);
+    if (gapDays <= TRIP_GAP_DAYS) {
+      current.push(entries[i]);
+    } else {
+      trips.push(current);
+      current = [entries[i]];
+    }
+  }
+  trips.push(current);
+
+  // Dedupe park IDs within each trip (a park visited twice in the same trip counts once)
+  const tripSummaries = trips.map(trip => {
+    const uniqueParkIds = [...new Set(trip.map(e => e.parkId))];
+    return {
+      parkIds: uniqueParkIds,
+      startDate: trip[0].date,
+      endDate: trip[trip.length-1].date,
+      count: uniqueParkIds.length,
+    };
+  });
+
+  const longest = tripSummaries.reduce((best, t) => (!best || t.count > best.count) ? t : best, null);
+  return { trips: tripSummaries, longest };
+}
+
+const i18n = {
+  en: {
+    country:"United States", title:"National Parks Checklist", subtitle:"All 63 Parks",
+    visited:"Visited", search:"🔍  Search by name or state...", all:"All",
+    notFound:"No parks found", badge:(n)=>`🏕️ ${n} park${n===1?"":"s"} visited`,
+    langBtn:"日本語", mapTab:"Map", listTab:"List", timelineTab:"Timeline",
+    npsLink:"NPS Official", gmapLink:"Google Maps",
+    checkedLabel:"Visited", uncheckedLabel:"Not yet", mapHint:"Tap a pin for details",
+    addDate:"+ Add visit date", visitDates:"Visit history",
+    noDate:"No dates logged yet", visits:(n)=>n===1?"1 visit":`${n} visits`,
+    firstVisit:"First visit", latestVisit:"Latest",
+    // Profile
+    profiles:"Profiles", newProfile:"New Profile", profileName:"Name",
+    createProfile:"Create", deleteProfile:"Delete", switchProfile:"Switch",
+    confirmReset:"Reset all checks for", confirmDelete:"Delete profile",
+    resetAll:"Reset All", cancel:"Cancel", confirm:"Confirm",
+    profilePlaceholder:"e.g. Kenji, Family...",
+    editName:"Edit name",
+    // Backup
+    backup:"Backup", exportData:"Export Data", importData:"Import Data",
+    exportSuccess:"Data exported!", importSuccess:"Data imported successfully",
+    importError:"Invalid file — couldn't import", importConfirm:"This will replace all current data with the imported file. Continue?",
+    // Sort
+    sortBy:"Sort", sortAZ:"A–Z", sortDateDesc:"Recent first", sortDateAsc:"Oldest first", sortUnvisited:"Unvisited first",
+    // Badges
+    badges:"Badges", badgeEarned:"Earned", badgeLocked:"Locked", newBadge:"New Badge!",
+    // Share timestamp
+    generatedOn:"Generated",
+    // Quests
+    quests:"Quests", questsTab:"Quests", questComplete:"Complete!", questProgress:"Progress",
+    // Streak
+    streak:"Park Streak", longestStreak:"Longest Streak", tripDates:"Trip Dates",
+    noStreak:"No trips logged yet", parksInOneTrip:(n)=>`${n} park${n===1?"":"s"} in one trip`,
+    statsTab:"Stats",
+    confirmUncheck:(n,park)=>`This will delete ${n} visit${n===1?"":"s"} and any notes for ${park}. This can't be undone.`,
+  },
+  ja: {
+    country:"アメリカ合衆国", title:"国立公園 チェックリスト", subtitle:"全63公園",
+    visited:"訪問済み", search:"🔍  公園名・州名で検索...", all:"全て",
+    notFound:"見つかりませんでした", badge:(n)=>`🏕️ ${n} パーク訪問済み`,
+    langBtn:"English", mapTab:"地図", listTab:"リスト", timelineTab:"年表",
+    npsLink:"NPS公式サイト", gmapLink:"Google マップ",
+    checkedLabel:"訪問済み", uncheckedLabel:"未訪問", mapHint:"ピンをタップして詳細表示",
+    addDate:"+ 訪問日を追加", visitDates:"訪問履歴",
+    noDate:"まだ記録がありません", visits:(n)=>`${n}回訪問`,
+    firstVisit:"初回訪問", latestVisit:"最終訪問",
+    // Profile
+    profiles:"プロフィール", newProfile:"新規作成", profileName:"名前",
+    createProfile:"作成", deleteProfile:"削除", switchProfile:"切替",
+    confirmReset:"チェックをリセット", confirmDelete:"プロフィールを削除",
+    resetAll:"全リセット", cancel:"キャンセル", confirm:"実行",
+    profilePlaceholder:"例: Kenji, 家族...",
+    editName:"名前を編集",
+    // Backup
+    backup:"バックアップ", exportData:"データを書き出す", importData:"データを読み込む",
+    exportSuccess:"データを書き出しました！", importSuccess:"データを読み込みました",
+    importError:"ファイルが無効です — 読み込めませんでした", importConfirm:"現在のデータは読み込むファイルの内容に置き換わります。続けますか？",
+    // Sort
+    sortBy:"並び替え", sortAZ:"A–Z順", sortDateDesc:"新しい訪問順", sortDateAsc:"古い訪問順", sortUnvisited:"未訪問を上に",
+    // Badges
+    badges:"バッジ", badgeEarned:"獲得済み", badgeLocked:"未獲得", newBadge:"新しいバッジ！",
+    // Share timestamp
+    generatedOn:"作成日時",
+    // Quests
+    quests:"クエスト", questsTab:"クエスト", questComplete:"達成！", questProgress:"進捗",
+    // Streak
+    streak:"パークストリーク", longestStreak:"最長ストリーク", tripDates:"旅の日程",
+    noStreak:"まだ記録がありません", parksInOneTrip:(n)=>`1回の旅で${n}公園`,
+    statsTab:"統計",
+    confirmUncheck:(n,park)=>`${park}の訪問記録（${n}件）とメモが削除されます。この操作は取り消せません。`,
+  },
+};
+
+function formatDate(iso, isJa) {
+  const d = new Date(iso + "T12:00:00");
+  if (isJa) return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+  return d.toLocaleDateString("en-US", { year:"numeric", month:"short", day:"numeric" });
+}
+function today() { return new Date().toISOString().slice(0,10); }
+function uid()   { return Math.random().toString(36).slice(2,9); }
+const npsUrl  = (p) => `https://www.nps.gov/${p.nps||p.name.toLowerCase().replace(/[\s–]/g,"")}/index.htm`;
+const gmapUrl = (p) => `https://www.google.com/maps/search/${encodeURIComponent(p.name+" National Park")}`;
+
+// ── SVG Map (simple linear lat/lng projection — no distortion) ────
+const MAP_W = 800, MAP_H = 500;
+const MAP_BOUNDS = { minLng:-125, maxLng:-66, minLat:24, maxLat:50 };
+
+function project(lat, lng) {
+  const x = (lng - MAP_BOUNDS.minLng) / (MAP_BOUNDS.maxLng - MAP_BOUNDS.minLng) * MAP_W;
+  const y = (MAP_BOUNDS.maxLat - lat) / (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat) * MAP_H;
+  return { x, y };
+}
+
+// Simplified continental US coastline/border outline (traced from real coordinates)
+const US_OUTLINE = "M 27.1 19.2 L 108.5 19.2 L 406.8 19.2 L 481.4 19.2 L 549.2 38.5 L 549.2 67.3 L 562.7 96.2 L 576.3 125.0 L 576.3 144.2 L 569.5 153.8 L 583.1 163.5 L 616.9 153.8 L 623.7 125.0 L 657.6 115.4 L 684.7 96.2 L 725.4 96.2 L 745.8 105.8 L 772.9 115.4 L 786.4 96.2 L 786.4 105.8 L 745.8 125.0 L 739.0 153.8 L 745.8 163.5 L 718.6 173.1 L 691.5 182.7 L 684.7 201.9 L 678.0 221.2 L 664.4 250.0 L 664.4 259.6 L 657.6 298.1 L 630.5 317.3 L 603.4 346.2 L 589.8 365.4 L 589.8 375.0 L 596.6 403.8 L 610.2 442.3 L 607.5 471.2 L 603.4 476.9 L 589.8 465.4 L 583.1 451.9 L 576.3 432.7 L 573.6 423.1 L 569.5 403.8 L 549.2 390.4 L 535.6 386.5 L 508.5 384.6 L 501.7 378.8 L 481.4 394.2 L 474.6 403.8 L 454.2 398.1 L 427.1 394.2 L 420.3 390.4 L 406.8 403.8 L 376.9 426.9 L 376.9 461.5 L 372.9 463.5 L 352.5 461.5 L 339.0 432.7 L 318.6 403.8 L 298.3 394.2 L 284.7 388.5 L 275.3 378.8 L 257.6 365.4 L 250.8 350.0 L 227.8 359.6 L 189.8 359.6 L 138.3 359.6 L 139.7 336.5 L 105.8 332.7 L 101.7 317.3 L 71.9 307.7 L 61.0 298.1 L 54.2 278.8 L 42.0 259.6 L 35.3 250.0 L 28.5 230.8 L 17.6 213.5 L 12.2 192.3 L 10.8 163.5 L 10.8 153.8 L 12.2 134.6 L 13.6 105.8 L 13.6 86.5 L 13.6 73.1 L 9.5 57.7 L 4.1 38.5 L 4.1 30.8 L 27.1 32.7 L 27.1 19.2 Z";
+
+// Rough state border lines (internal only, for visual reference — not exact)
+// Approximate state centroids (continental US) — used to place 2-letter labels
+const STATE_LABELS = [
+  {ab:"WA",x:61,y:50},{ab:"OR",x:61,y:115},{ab:"CA",x:72,y:246},
+  {ab:"NV",x:114,y:206},{ab:"ID",x:141,y:108},{ab:"MT",x:209,y:58},
+  {ab:"WY",x:236,y:135},{ab:"UT",x:180,y:206},{ab:"CO",x:264,y:212},
+  {ab:"AZ",x:180,y:304},{ab:"NM",x:256,y:298},{ab:"ND",x:332,y:48},
+  {ab:"SD",x:336,y:108},{ab:"NE",x:342,y:164},{ab:"KS",x:361,y:221},
+  {ab:"OK",x:373,y:279},{ab:"TX",x:349,y:356},{ab:"MN",x:412,y:77},
+  {ab:"IA",x:427,y:154},{ab:"MO",x:441,y:223},{ab:"AR",x:442,y:290},
+  {ab:"LA",x:448,y:365},{ab:"WI",x:476,y:104},{ab:"IL",x:485,y:192},
+  {ab:"MI",x:534,y:110},{ab:"IN",x:525,y:192},{ab:"OH",x:572,y:187},
+  {ab:"KY",x:538,y:240},{ab:"TN",x:523,y:273},{ab:"MS",x:479,y:333},
+  {ab:"AL",x:518,y:333},{ab:"GA",x:564,y:335},{ab:"FL",x:583,y:423},
+  {ab:"SC",x:598,y:310},{ab:"NC",x:618,y:279},{ab:"VA",x:631,y:240},
+  {ab:"WV",x:603,y:214},{ab:"PA",x:641,y:175},{ab:"NY",x:671,y:137},
+  {ab:"MD",x:655,y:212},{ab:"NJ",x:682,y:190},{ab:"MA",x:721,y:148},
+  {ab:"VT",x:709,y:115},{ab:"NH",x:724,y:121},{ab:"ME",x:757,y:89},
+  {ab:"CT",x:709,y:162},{ab:"RI",x:725,y:160},{ab:"DE",x:671,y:212},
+];
+
+function SVGMap({ parks, checked, visits, isJa, onParkClick, hoveredId, setHoveredId, themeColors }) {
+  const contiguous = parks.filter(p=>!["Alaska","Hawaii","American Samoa","U.S. Virgin Islands"].includes(p.state));
+  const outside    = parks.filter(p=> ["Alaska","Hawaii","American Samoa","U.S. Virgin Islands"].includes(p.state));
+
+  const [zoom, setZoom]   = useState(1);
+  const [pan,  setPan]    = useState({x:0,y:0});
+  const dragRef = useRef({dragging:false, startX:0, startY:0, panX:0, panY:0});
+  const pinchRef = useRef({active:false, startDist:0, startZoom:1});
+  const svgRef = useRef(null);
+
+  const MIN_ZOOM = 1, MAX_ZOOM = 6;
+
+  const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
+
+  const zoomBy = (factor, cx=MAP_W/2, cy=MAP_H/2) => {
+    setZoom(prevZoom => {
+      const newZoom = clamp(prevZoom * factor, MIN_ZOOM, MAX_ZOOM);
+      setPan(prevPan => {
+        // Zoom toward the given center point (keeps that point stable)
+        const scaleDelta = newZoom / prevZoom;
+        const nx = cx - (cx - prevPan.x) * scaleDelta;
+        const ny = cy - (cy - prevPan.y) * scaleDelta;
+        return clampPan(nx, ny, newZoom);
+      });
+      return newZoom;
+    });
+  };
+
+  const clampPan = (x, y, z) => {
+    const maxPanX = (MAP_W * z - MAP_W) ;
+    const maxPanY = (MAP_H * z - MAP_H) ;
+    return { x: clamp(x, -maxPanX, 0), y: clamp(y, -maxPanY, 0) };
+  };
+
+  const resetView = () => { setZoom(1); setPan({x:0,y:0}); };
+
+  // Mouse drag pan
+  const onPointerDown = (e) => {
+    const p = e.touches ? e.touches[0] : e;
+    dragRef.current = { dragging:true, startX:p.clientX, startY:p.clientY, panX:pan.x, panY:pan.y };
+  };
+  const onPointerMove = (e) => {
+    if (e.touches && e.touches.length === 2) { handlePinch(e); return; }
+    if (!dragRef.current.dragging) return;
+    const p = e.touches ? e.touches[0] : e;
+    const rect = svgRef.current.getBoundingClientRect();
+    const scaleX = MAP_W / rect.width, scaleY = MAP_H / rect.height;
+    const dx = (p.clientX - dragRef.current.startX) * scaleX;
+    const dy = (p.clientY - dragRef.current.startY) * scaleY;
+    setPan(clampPan(dragRef.current.panX + dx, dragRef.current.panY + dy, zoom));
+  };
+  const onPointerUp = () => { dragRef.current.dragging = false; pinchRef.current.active = false; };
+
+  // Touch pinch-to-zoom
+  const onTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      const dist = touchDist(e.touches);
+      pinchRef.current = { active:true, startDist:dist, startZoom:zoom };
+    } else if (e.touches.length === 1) {
+      onPointerDown(e);
+    }
+  };
+  const touchDist = (touches) => {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+  };
+  const handlePinch = (e) => {
+    if (!pinchRef.current.active) return;
+    const dist = touchDist(e.touches);
+    const scale = dist / pinchRef.current.startDist;
+    const newZoom = clamp(pinchRef.current.startZoom * scale, MIN_ZOOM, MAX_ZOOM);
+    setZoom(newZoom);
+    setPan(p => clampPan(p.x, p.y, newZoom));
+  };
+
+  // Wheel zoom (desktop)
+  const onWheel = (e) => {
+    e.preventDefault();
+    const rect = svgRef.current.getBoundingClientRect();
+    const scaleX = MAP_W / rect.width, scaleY = MAP_H / rect.height;
+    const cx = (e.clientX - rect.left) * scaleX;
+    const cy = (e.clientY - rect.top) * scaleY;
+    zoomBy(e.deltaY < 0 ? 1.2 : 1/1.2, cx, cy);
+  };
+
+  const viewBoxStr = `${-pan.x/zoom} ${-pan.y/zoom} ${MAP_W/zoom} ${MAP_H/zoom}`;
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:8,padding:"0 12px 8px"}}>
+      <div style={{position:"relative"}}>
+        <svg ref={svgRef} viewBox={viewBoxStr}
+          style={{width:"100%",background:themeColors.mapBg,borderRadius:10,border:`1px solid ${themeColors.mapBorder}`,display:"block",touchAction:"none",cursor:dragRef.current.dragging?"grabbing":"grab"}}
+          onMouseDown={onPointerDown} onMouseMove={onPointerMove} onMouseUp={onPointerUp} onMouseLeave={onPointerUp}
+          onTouchStart={onTouchStart} onTouchMove={onPointerMove} onTouchEnd={onPointerUp}
+          onWheel={onWheel}>
+          {/* Land mass */}
+          <path d={US_OUTLINE} fill={themeColors.mapLand} stroke={themeColors.mapLandBorder} strokeWidth={1.5/zoom} strokeLinejoin="round"/>
+          {/* Reference grid */}
+          {[0,1,2,3,4,5,6,7].map(i=><line key={`v${i}`} x1={i*100} y1="0" x2={i*100} y2={MAP_H} stroke={themeColors.mapGrid} strokeWidth={0.5/zoom}/>)}
+          {[0,1,2,3,4,5].map(i=><line key={`h${i}`} x1="0" y1={i*100} x2={MAP_W} y2={i*100} stroke={themeColors.mapGrid} strokeWidth={0.5/zoom}/>)}
+          {/* State abbreviation labels */}
+          {STATE_LABELS.map(s=>(
+            <text key={s.ab} x={s.x} y={s.y} fontSize={7/zoom} fill={themeColors.mapStateLabel} textAnchor="middle" style={{userSelect:"none",pointerEvents:"none"}}>{s.ab}</text>
+          ))}
+
+          {contiguous.map(park=>{
+            const {x,y}=project(park.lat,park.lng);
+            if(x<0||x>MAP_W||y<0||y>MAP_H) return null;
+            const isChk=checked[park.id], cnt=visits[park.id]?.length??0, isHov=hoveredId===park.id;
+            const r=(isHov?9:6.5)/Math.sqrt(zoom); // pins shrink slightly on zoom so map doesn't get cluttered, but stay tappable
+            return (
+              <g key={park.id} style={{cursor:"pointer"}} onClick={()=>onParkClick(park)}
+                onMouseEnter={()=>setHoveredId(park.id)} onMouseLeave={()=>setHoveredId(null)}>
+                {/* Outer ring: unmistakable visited/unvisited signal */}
+                <circle cx={x} cy={y} r={r+2.5/Math.sqrt(zoom)} fill="none" stroke={isChk?themeColors.pinVisitedRing:"none"} strokeWidth={1.5/Math.sqrt(zoom)} opacity={isChk?0.6:0}/>
+                <circle cx={x+0.8} cy={y+0.8} r={r} fill="rgba(0,0,0,0.5)"/>
+                <circle cx={x} cy={y} r={r} fill={isChk?themeColors.pinVisited:themeColors.pinUnvisited} stroke={isChk?themeColors.pinVisitedBorder:themeColors.pinUnvisitedBorder} strokeWidth={1.5/Math.sqrt(zoom)}/>
+                {isChk
+                  ? <text x={x} y={y+r*0.35} fontSize={r*1.1} textAnchor="middle" fill={themeColors.pinCheckmark} style={{userSelect:"none",pointerEvents:"none",fontWeight:"bold"}}>✓</text>
+                  : <circle cx={x} cy={y} r={r*0.3} fill={themeColors.pinUnvisitedDot}/>
+                }
+                {cnt>1&&<text x={x+r+2/Math.sqrt(zoom)} y={y-r+2/Math.sqrt(zoom)} fontSize={8/Math.sqrt(zoom)} fill={themeColors.pinBadge} fontWeight="bold" textAnchor="middle" style={{userSelect:"none"}}>{cnt}</text>}
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* Zoom controls */}
+        <div style={{position:"absolute",top:8,right:8,display:"flex",flexDirection:"column",gap:4}}>
+          <button onClick={()=>zoomBy(1.4)} style={{width:28,height:28,borderRadius:6,background:"rgba(10,20,10,0.85)",border:`1px solid ${themeColors.mapBorder}`,color:themeColors.mapStateLabel,fontSize:16,cursor:"pointer",lineHeight:1}}>+</button>
+          <button onClick={()=>zoomBy(1/1.4)} style={{width:28,height:28,borderRadius:6,background:"rgba(10,20,10,0.85)",border:`1px solid ${themeColors.mapBorder}`,color:themeColors.mapStateLabel,fontSize:16,cursor:"pointer",lineHeight:1}}>−</button>
+          {zoom>1&&<button onClick={resetView} style={{width:28,height:28,borderRadius:6,background:"rgba(10,20,10,0.85)",border:`1px solid ${themeColors.mapBorder}`,color:themeColors.mapStateLabel,fontSize:11,cursor:"pointer",lineHeight:1}}>⟲</button>}
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div style={{display:"flex",gap:14,justifyContent:"center",fontSize:10,color:themeColors.mapStateLabel}}>
+        <span style={{display:"flex",alignItems:"center",gap:4}}>
+          <span style={{width:10,height:10,borderRadius:"50%",background:themeColors.pinVisited,border:`1px solid ${themeColors.pinVisitedBorder}`,display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:7,color:themeColors.pinCheckmark}}>✓</span>
+          {isJa?"訪問済み":"Visited"}
+        </span>
+        <span style={{display:"flex",alignItems:"center",gap:4}}>
+          <span style={{width:10,height:10,borderRadius:"50%",background:themeColors.pinUnvisited,border:`1px solid ${themeColors.pinUnvisitedBorder}`,display:"inline-block"}}/>
+          {isJa?"未訪問":"Not yet"}
+        </span>
+      </div>
+
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {[{label:"Alaska",fn:p=>p.state==="Alaska"},{label:"Hawaii",fn:p=>p.state==="Hawaii"},{label:"Territories",fn:p=>["American Samoa","U.S. Virgin Islands"].includes(p.state)}].map(({label,fn})=>{
+          const sub=outside.filter(fn); if(!sub.length) return null;
+          return (
+            <div key={label} style={{background:themeColors.cardBg,border:`1px solid ${themeColors.cardBorder}`,borderRadius:8,padding:"8px 12px",flex:1,minWidth:90}}>
+              <div style={{fontSize:10,color:themeColors.mapStateLabel,marginBottom:5,fontWeight:500}}>{label}</div>
+              {sub.map(park=>{
+                const cnt=visits[park.id]?.length??0;
+                return (
+                  <div key={park.id} onClick={()=>onParkClick(park)} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 0",cursor:"pointer"}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",flexShrink:0,background:checked[park.id]?themeColors.pinVisited:themeColors.pinUnvisited,border:`1.5px solid ${checked[park.id]?themeColors.pinVisitedBorder:themeColors.pinUnvisitedBorder}`}}/>
+                    <span style={{fontSize:10,color:checked[park.id]?themeColors.accentText:themeColors.mutedText}}>{park.emoji} {isJa?park.ja:park.name}</span>
+                    {cnt>1&&<span style={{fontSize:9,color:themeColors.accentText}}>×{cnt}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Timeline View (chronological visit history) ────────────────────
+function TimelineView({ parks, visits, isJa, themeColors, onParkClick }) {
+  const T = themeColors;
+
+  // Flatten all visits across all parks into one sorted list
+  const timeline = useMemo(() => {
+    const entries = [];
+    parks.forEach(park => {
+      (visits[park.id] || []).forEach(v => {
+        entries.push({ park, date: v.date, note: v.note });
+      });
+    });
+    return entries.sort((a, b) => b.date.localeCompare(a.date));
+  }, [parks, visits]);
+
+  // Group by year
+  const byYear = useMemo(() => {
+    const groups = {};
+    timeline.forEach(entry => {
+      const year = entry.date.slice(0, 4);
+      if (!groups[year]) groups[year] = [];
+      groups[year].push(entry);
+    });
+    return Object.entries(groups).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [timeline]);
+
+  function fmtFull(iso) {
+    const d = new Date(iso + "T12:00:00");
+    return isJa
+      ? `${d.getMonth()+1}月${d.getDate()}日`
+      : d.toLocaleDateString("en-US", { month:"long", day:"numeric" });
+  }
+
+  if (timeline.length === 0) {
+    return (
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:40,color:T.mutedText,fontSize:14,textAlign:"center"}}>
+        {isJa ? "まだ訪問記録がありません。\nチェックを入れて旅の記録を始めましょう。" : "No visits logged yet.\nCheck off a park to start your journey timeline."}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{flex:1,padding:"16px 20px 80px",maxWidth:600,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+      {byYear.map(([year, entries]) => (
+        <div key={year} style={{marginBottom:28}}>
+          <div style={{fontSize:20,color:T.accentText,fontWeight:600,marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
+            <span>{year}</span>
+            <div style={{flex:1,height:1,background:T.cardBorder}}/>
+            <span style={{fontSize:11,color:T.mutedText,fontWeight:400}}>{entries.length} {isJa?"件":entries.length===1?"visit":"visits"}</span>
+          </div>
+          <div style={{position:"relative",paddingLeft:20}}>
+            {/* Vertical line */}
+            <div style={{position:"absolute",left:5,top:6,bottom:6,width:2,background:T.cardBorder}}/>
+            {entries.map((entry, i) => (
+              <div key={`${entry.park.id}-${entry.date}`} onClick={()=>onParkClick(entry.park)}
+                style={{position:"relative",marginBottom:16,cursor:"pointer"}}>
+                {/* Dot */}
+                <div style={{position:"absolute",left:-20,top:4,width:10,height:10,borderRadius:"50%",background:T.pinVisited,border:`2px solid ${T.bg}`,boxShadow:`0 0 0 2px ${T.pinVisitedBorder}`}}/>
+                <div style={{background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:8,padding:"10px 14px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:8}}>
+                    <span style={{fontSize:14,color:T.textPrimary,fontWeight:500}}>{entry.park.emoji} {isJa?entry.park.ja:entry.park.name}</span>
+                    <span style={{fontSize:11,color:T.mutedText,whiteSpace:"nowrap"}}>{fmtFull(entry.date)}</span>
+                  </div>
+                  <div style={{fontSize:10,color:T.mutedText,marginTop:2}}>{isJa?entry.park.stateJa:entry.park.state}</div>
+                  {entry.note&&<div style={{fontSize:12,color:T.textSecondary,marginTop:6,fontStyle:"italic"}}>💬 {entry.note}</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Badge Modal ──────────────────────────────────────────────────
+function BadgeModal({ earnedIds, earnedTagIds, questProgress, isJa, tx, themeColors, checked, onParkClick, onClose }) {
+  const T = themeColors;
+  const [innerTab, setInnerTab] = useState("badges"); // badges | quests
+
+  const allBadgeCount = BADGES.length + TAG_BADGES.length;
+  const allEarnedCount = earnedIds.length + earnedTagIds.length;
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2000}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:T.cardBgAlt,border:`1px solid ${T.headerBorder}`,borderRadius:"16px 16px 0 0",width:"100%",maxWidth:500,padding:"20px 20px 32px",maxHeight:"82vh",overflowY:"auto"}}>
+        <div style={{width:36,height:4,background:T.cardBorder,borderRadius:2,margin:"0 auto 16px"}}/>
+
+        {/* Inner tab switcher */}
+        <div style={{display:"flex",gap:6,marginBottom:16,justifyContent:"center"}}>
+          <button onClick={()=>setInnerTab("badges")} style={{
+            padding:"6px 16px",borderRadius:20,fontSize:12,cursor:"pointer",fontFamily:"inherit",
+            background:innerTab==="badges"?T.btnBgActive:"transparent",
+            border:`1px solid ${innerTab==="badges"?T.btnBorderActive:T.cardBorder}`,
+            color:innerTab==="badges"?T.accentText:T.mutedText,
+          }}>🏅 {tx.badges} ({allEarnedCount}/{allBadgeCount})</button>
+          <button onClick={()=>setInnerTab("quests")} style={{
+            padding:"6px 16px",borderRadius:20,fontSize:12,cursor:"pointer",fontFamily:"inherit",
+            background:innerTab==="quests"?T.btnBgActive:"transparent",
+            border:`1px solid ${innerTab==="quests"?T.btnBorderActive:T.cardBorder}`,
+            color:innerTab==="quests"?T.accentText:T.mutedText,
+          }}>🗺 {tx.quests} ({questProgress.filter(q=>q.complete).length}/{questProgress.length})</button>
+        </div>
+
+        {innerTab==="badges" && (
+          <>
+            <div style={{fontSize:11,color:T.mutedText,marginBottom:10,fontWeight:600}}>🏆 {isJa?"達成バッジ":"Achievement Badges"}</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+              {BADGES.map(b => {
+                const earned = earnedIds.includes(b.id);
+                return (
+                  <div key={b.id} style={{
+                    padding:"14px 12px",borderRadius:10,textAlign:"center",
+                    background:earned?T.cardBg:T.cardBgAlt,
+                    border:`1px solid ${earned?T.cardBorderActive:T.cardBorder}`,
+                    opacity:earned?1:0.45,
+                  }}>
+                    <div style={{fontSize:32,marginBottom:6,filter:earned?"none":"grayscale(1)"}}>{b.icon}</div>
+                    <div style={{fontSize:12,color:earned?T.textPrimary:T.mutedText,fontWeight:600,marginBottom:3}}>{isJa?b.nameJa:b.name}</div>
+                    <div style={{fontSize:10,color:T.mutedText,lineHeight:1.3}}>{isJa?b.descJa:b.desc}</div>
+                    {earned&&<div style={{fontSize:10,color:T.accentText,marginTop:6}}>✓ {tx.badgeEarned}</div>}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{fontSize:11,color:T.mutedText,marginBottom:10,fontWeight:600}}>💬 {isJa?"体験バッジ（訪問メモから自動判定）":"Experience Badges (auto-detected from your notes)"}</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {TAG_BADGES.map(b => {
+                const earned = earnedTagIds.includes(b.id);
+                return (
+                  <div key={b.id} style={{
+                    padding:"14px 12px",borderRadius:10,textAlign:"center",
+                    background:earned?T.cardBg:T.cardBgAlt,
+                    border:`1px solid ${earned?T.cardBorderActive:T.cardBorder}`,
+                    opacity:earned?1:0.45,
+                  }}>
+                    <div style={{fontSize:32,marginBottom:6,filter:earned?"none":"grayscale(1)"}}>{b.icon}</div>
+                    <div style={{fontSize:12,color:earned?T.textPrimary:T.mutedText,fontWeight:600,marginBottom:3}}>{isJa?b.nameJa:b.name}</div>
+                    <div style={{fontSize:10,color:T.mutedText,lineHeight:1.3}}>{isJa?b.descJa:b.desc}</div>
+                    {earned&&<div style={{fontSize:10,color:T.accentText,marginTop:6}}>✓ {tx.badgeEarned}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {innerTab==="quests" && (
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {questProgress.map(q => (
+              <div key={q.id} style={{
+                padding:"14px 16px",borderRadius:10,
+                background:q.complete?T.cardBg:T.cardBgAlt,
+                border:`1px solid ${q.complete?T.cardBorderActive:T.cardBorder}`,
+              }}>
+                <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                  <span style={{fontSize:26,filter:q.complete?"none":"grayscale(0.6)",opacity:q.complete?1:0.6}}>{q.icon}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,color:q.complete?T.textPrimary:T.textPrimary,fontWeight:600}}>{isJa?q.nameJa:q.name}</div>
+                    <div style={{fontSize:10,color:T.mutedText,marginTop:1}}>{isJa?q.descJa:q.desc}</div>
+                  </div>
+                  {q.complete&&<span style={{fontSize:11,color:T.accentText,fontWeight:600,whiteSpace:"nowrap"}}>✓ {tx.questComplete}</span>}
+                </div>
+                {/* Progress bar */}
+                <div style={{height:6,background:T.progressTrack,borderRadius:3,overflow:"hidden",marginBottom:8}}>
+                  <div style={{height:"100%",width:`${(q.done/q.total)*100}%`,background:q.complete?T.progressFill:T.progressFill,borderRadius:3,transition:"width .3s ease"}}/>
+                </div>
+                <div style={{fontSize:10,color:T.mutedText,marginBottom:8}}>{tx.questProgress}: {q.done}/{q.total}</div>
+                {/* Park chips */}
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {q.parkIds.map(pid => {
+                    const p = parks.find(pp=>pp.id===pid);
+                    if (!p) return null;
+                    const done = !!checked[pid];
+                    return (
+                      <div key={pid} onClick={()=>onParkClick&&onParkClick(p)} style={{
+                        display:"flex",alignItems:"center",gap:4,padding:"3px 8px",borderRadius:12,fontSize:10,cursor:"pointer",
+                        background:done?T.chipBgActive:T.inputBg,
+                        border:`1px solid ${done?T.chipBorderActive:T.cardBorder}`,
+                        color:done?T.chipTextActive:T.mutedText,
+                      }}>
+                        {p.emoji} {isJa?p.ja:p.name} {done&&"✓"}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Stats View: streaks, mini map silhouette, state progress ───────
+function StatsView({ parks, visits, checked, isJa, themeColors, tx, onParkClick }) {
+  const T = themeColors;
+
+  const { trips, longest } = useMemo(() => computeTripStreaks(visits), [visits]);
+  const totalChecked = Object.values(checked).filter(Boolean).length;
+
+  const visitedStates = useMemo(() => {
+    const set = new Set();
+    parks.forEach(p => { if (checked[p.id]) p.state.split(" / ").forEach(s=>set.add(s.trim())); });
+    return set;
+  }, [checked]);
+  const totalStates = useMemo(() => {
+    const set = new Set();
+    parks.forEach(p => p.state.split(" / ").forEach(s=>set.add(s.trim())));
+    return set;
+  }, []);
+
+  function fmtRange(startIso, endIso) {
+    const s = new Date(startIso+"T12:00:00"), e = new Date(endIso+"T12:00:00");
+    const fmt = (d) => isJa ? `${d.getMonth()+1}/${d.getDate()}` : d.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+    return startIso === endIso ? fmt(s) : `${fmt(s)} – ${fmt(e)}`;
+  }
+
+  const sortedTrips = [...trips].sort((a,b)=>b.count-a.count).slice(0,5);
+
+  return (
+    <div style={{flex:1,padding:"16px 20px 80px",maxWidth:700,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+
+      {/* ── Streak highlight card ── */}
+      <div style={{background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:14,padding:"20px",marginBottom:20,textAlign:"center"}}>
+        <div style={{fontSize:12,color:T.mutedText,marginBottom:6,letterSpacing:"0.1em"}}>🔥 {tx.longestStreak}</div>
+        {longest ? (
+          <>
+            <div style={{fontSize:40,fontWeight:700,color:T.accentText,lineHeight:1}}>{longest.count}</div>
+            <div style={{fontSize:13,color:T.textPrimary,marginTop:4}}>{tx.parksInOneTrip(longest.count)}</div>
+            <div style={{fontSize:11,color:T.mutedText,marginTop:6}}>{fmtRange(longest.startDate, longest.endDate)}</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"center",marginTop:12}}>
+              {longest.parkIds.map(pid => {
+                const p = parks.find(pp=>pp.id===pid);
+                if (!p) return null;
+                return (
+                  <div key={pid} onClick={()=>onParkClick&&onParkClick(p)} style={{
+                    padding:"4px 10px",borderRadius:12,fontSize:11,cursor:"pointer",
+                    background:T.chipBgActive,border:`1px solid ${T.chipBorderActive}`,color:T.chipTextActive,
+                  }}>{p.emoji} {isJa?p.ja:p.name}</div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div style={{fontSize:13,color:T.mutedText,padding:"12px 0"}}>{tx.noStreak}</div>
+        )}
+      </div>
+
+      {/* ── Mini map silhouette with visited pins ── */}
+      <div style={{marginBottom:20}}>
+        <div style={{fontSize:12,color:T.mutedText,marginBottom:8,letterSpacing:"0.05em"}}>🗺 {isJa?"訪問地図":"Visited Map"}</div>
+        <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{width:"100%",background:T.mapBg,borderRadius:10,border:`1px solid ${T.mapBorder}`,display:"block"}}>
+          <path d={US_OUTLINE} fill={T.mapLand} stroke={T.mapLandBorder} strokeWidth="1.5" strokeLinejoin="round"/>
+          {parks.filter(p=>!["Alaska","Hawaii","American Samoa","U.S. Virgin Islands"].includes(p.state)).map(park => {
+            const {x,y} = project(park.lat, park.lng);
+            if (x<0||x>MAP_W||y<0||y>MAP_H) return null;
+            const isChk = checked[park.id];
+            if (!isChk) return <circle key={park.id} cx={x} cy={y} r={2.5} fill={T.pinUnvisited} opacity={0.3}/>;
+            return (
+              <g key={park.id}>
+                <circle cx={x} cy={y} r={7} fill={T.pinVisited} opacity={0.25}/>
+                <circle cx={x} cy={y} r={4} fill={T.pinVisited} stroke={T.pinVisitedBorder} strokeWidth="1"/>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+
+      {/* ── Trip history (top 5 longest) ── */}
+      {sortedTrips.length > 0 && (
+        <div style={{marginBottom:20}}>
+          <div style={{fontSize:12,color:T.mutedText,marginBottom:8,letterSpacing:"0.05em"}}>📋 {isJa?"旅の記録":"Trip History"}</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {sortedTrips.map((trip,i) => (
+              <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:8}}>
+                <div>
+                  <div style={{fontSize:12,color:T.textPrimary}}>{tx.parksInOneTrip(trip.count)}</div>
+                  <div style={{fontSize:10,color:T.mutedText,marginTop:2}}>{fmtRange(trip.startDate, trip.endDate)}</div>
+                </div>
+                <div style={{fontSize:18,color:T.accentText}}>{trip.count===1?"🏕️":trip.count<4?"🚗":"🔥"}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── State progress ── */}
+      <div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+          <span style={{fontSize:12,color:T.mutedText,letterSpacing:"0.05em"}}>🏳️ {isJa?"訪問した州":"States Visited"}</span>
+          <span style={{fontSize:14,color:T.accentText,fontWeight:600}}>{visitedStates.size} / {totalStates.size}</span>
+        </div>
+        <div style={{height:6,background:T.progressTrack,borderRadius:3,overflow:"hidden"}}>
+          <div style={{height:"100%",width:`${(visitedStates.size/totalStates.size)*100}%`,background:T.progressFill,borderRadius:3}}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Confirm Dialog ────────────────────────────────────────────────
+function ConfirmDialog({ message, onConfirm, onCancel, tx }) {
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.8)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:3000,padding:20}}>
+      <div style={{background:"#111e11",border:"1px solid #3a5a3a",borderRadius:14,padding:"24px 20px",maxWidth:320,width:"100%",textAlign:"center"}}>
+        <div style={{fontSize:14,color:"#d4c8b0",marginBottom:20,lineHeight:1.5}}>{message}</div>
+        <div style={{display:"flex",gap:10}}>
+          <button onClick={onCancel} style={{flex:1,padding:"10px",background:"transparent",border:"1px solid #2a3a2a",borderRadius:8,color:"#6a8a6a",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>{tx.cancel}</button>
+          <button onClick={onConfirm} style={{flex:1,padding:"10px",background:"#3a1a1a",border:"1px solid #6a3a3a",borderRadius:8,color:"#cc6a6a",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>{tx.confirm}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Profile Manager Modal ─────────────────────────────────────────
+function ProfileModal({ profiles, activeId, onSwitch, onCreate, onRename, onDelete, onClose, tx, isJa, onExport, onImport }) {
+  const [newName,   setNewName]   = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editName,  setEditName]  = useState("");
+  const fileInputRef = useRef(null);
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2000}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#111e11",border:"1px solid #2a4a2a",borderRadius:"16px 16px 0 0",width:"100%",maxWidth:500,padding:"20px 20px 32px"}}>
+        <div style={{width:36,height:4,background:"#2a4a2a",borderRadius:2,margin:"0 auto 16px"}}/>
+        <div style={{fontSize:16,color:"#a8d4a8",marginBottom:16}}>👤 {tx.profiles}</div>
+
+        {/* Profile list */}
+        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16,maxHeight:260,overflowY:"auto"}}>
+          {profiles.map(p => (
+            <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 12px",background:p.id===activeId?"#1a3a1a":"#0d150d",border:`1px solid ${p.id===activeId?"#3a6a3a":"#1a2a1a"}`,borderRadius:8}}>
+              {editingId===p.id ? (
+                <>
+                  <input value={editName} onChange={e=>setEditName(e.target.value)}
+                    autoFocus onKeyDown={e=>{if(e.key==="Enter"&&editName.trim()){onRename(p.id,editName.trim());setEditingId(null);}}}
+                    style={{flex:1,padding:"4px 8px",background:"#0a1a0a",border:"1px solid #3a5a3a",borderRadius:6,color:"#e8dcc8",fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                  <button onClick={()=>{if(editName.trim())onRename(p.id,editName.trim());setEditingId(null);}}
+                    style={{padding:"4px 10px",background:"#2a5a2a",border:"none",borderRadius:6,color:"#a8d4a8",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✓</button>
+                  <button onClick={()=>setEditingId(null)}
+                    style={{padding:"4px 8px",background:"transparent",border:"none",color:"#5a7a5a",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+                </>
+              ) : (
+                <>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:14,color:p.id===activeId?"#a8d4a8":"#c4b89a"}}>{p.name}</div>
+                    <div style={{fontSize:10,color:"#4a6a4a",marginTop:2}}>
+                      {Object.values(p.visits).filter(v=>v.length>0).length} / {parks.length} parks
+                    </div>
+                  </div>
+                  {p.id!==activeId && (
+                    <button onClick={()=>{onSwitch(p.id);onClose();}}
+                      style={{padding:"4px 10px",background:"#1a2a1a",border:"1px solid #2a4a2a",borderRadius:6,color:"#6a9a6a",fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+                      {tx.switchProfile}
+                    </button>
+                  )}
+                  <button onClick={()=>{setEditingId(p.id);setEditName(p.name);}}
+                    style={{padding:"4px 8px",background:"transparent",border:"none",color:"#5a7a5a",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✏️</button>
+                  {profiles.length>1&&(
+                    <button onClick={()=>onDelete(p.id)}
+                      style={{padding:"4px 8px",background:"transparent",border:"none",color:"#6a4a4a",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>🗑</button>
+                  )}
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Create new */}
+        <div style={{display:"flex",gap:8}}>
+          <input value={newName} onChange={e=>setNewName(e.target.value)}
+            placeholder={tx.profilePlaceholder}
+            onKeyDown={e=>{if(e.key==="Enter"&&newName.trim()){onCreate(newName.trim());setNewName("");}}}
+            style={{flex:1,padding:"10px 12px",background:"#0d150d",border:"1px solid #2a4a2a",borderRadius:8,color:"#e8dcc8",fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+          <button onClick={()=>{if(newName.trim()){onCreate(newName.trim());setNewName("");}}}
+            style={{padding:"10px 16px",background:"#2a5a2a",border:"1px solid #4a8a4a",borderRadius:8,color:"#a8d4a8",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+            + {tx.createProfile}
+          </button>
+        </div>
+
+        {/* Backup section */}
+        <div style={{marginTop:20,paddingTop:16,borderTop:"1px solid #1a2a1a"}}>
+          <div style={{fontSize:11,color:"#5a7a5a",marginBottom:10}}>💾 {tx.backup}</div>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={onExport} style={{flex:1,padding:"9px 0",background:"transparent",border:"1px solid #2a4a2a",borderRadius:8,color:"#6a9a6a",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+              ⬇ {tx.exportData}
+            </button>
+            <button onClick={()=>fileInputRef.current?.click()} style={{flex:1,padding:"9px 0",background:"transparent",border:"1px solid #2a4a2a",borderRadius:8,color:"#6a9a6a",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>
+              ⬆ {tx.importData}
+            </button>
+            <input ref={fileInputRef} type="file" accept="application/json" style={{display:"none"}}
+              onChange={e=>{ const f=e.target.files?.[0]; if(f) onImport(f); e.target.value=""; }}/>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Date Modal ────────────────────────────────────────────────────
+function DateModal({ park, dates, isJa, tx, onClose, onAdd, onDelete, onUpdateNote }) {
+  const [picking, setPicking]     = useState(false);
+  const [inputDate, setInputDate] = useState(today());
+  const [inputNote, setInputNote] = useState("");
+  const [editingDate, setEditingDate] = useState(null); // date currently being note-edited
+  const [editNoteVal, setEditNoteVal] = useState("");
+
+  const sorted = [...dates].sort((a,b)=>b.date.localeCompare(a.date));
+
+  const startEditNote = (v) => { setEditingDate(v.date); setEditNoteVal(v.note || ""); };
+  const saveEditNote = () => { onUpdateNote(editingDate, editNoteVal); setEditingDate(null); };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2000}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#111e11",border:"1px solid #2a4a2a",borderRadius:"16px 16px 0 0",width:"100%",maxWidth:500,padding:"20px 20px 32px",maxHeight:"85vh",overflowY:"auto"}}>
+        <div style={{width:36,height:4,background:"#2a4a2a",borderRadius:2,margin:"0 auto 16px"}}/>
+        <div style={{fontSize:17,color:"#d4c8b0",marginBottom:2}}>{park.emoji} {isJa?park.ja:park.name}</div>
+        <div style={{fontSize:11,color:"#4a6a4a",marginBottom:14}}>{isJa?park.stateJa:park.state}</div>
+        {sorted.length>0&&(
+          <div style={{display:"flex",gap:16,marginBottom:14,padding:"10px 14px",background:"#0d150d",borderRadius:8,border:"1px solid #1a2a1a"}}>
+            <div style={{flex:1}}><div style={{fontSize:10,color:"#4a6a4a",marginBottom:2}}>{tx.firstVisit}</div><div style={{fontSize:12,color:"#8aaa8a"}}>{formatDate(sorted[sorted.length-1].date,isJa)}</div></div>
+            {sorted.length>1&&<div style={{flex:1}}><div style={{fontSize:10,color:"#4a6a4a",marginBottom:2}}>{tx.latestVisit}</div><div style={{fontSize:12,color:"#8aaa8a"}}>{formatDate(sorted[0].date,isJa)}</div></div>}
+            <div style={{textAlign:"right"}}><div style={{fontSize:10,color:"#4a6a4a"}}>&nbsp;</div><div style={{fontSize:13,color:"#5acc5a",fontWeight:500}}>✓ {tx.visits(sorted.length)}</div></div>
+          </div>
+        )}
+        <div style={{fontSize:11,color:"#6a8a6a",marginBottom:8}}>{tx.visitDates}</div>
+        <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+          {sorted.length===0?<div style={{fontSize:12,color:"#3a5a3a",padding:"10px 0"}}>{tx.noDate}</div>
+            :sorted.map((v,i)=>(
+              <div key={v.date} style={{padding:"9px 10px",background:"#0d150d",borderRadius:6,border:"1px solid #1a2a1a"}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <span style={{fontSize:13,color:"#c4b89a"}}>{i===0&&sorted.length>1?"🔁 ":i===sorted.length-1?"🌟 ":"📅 "}{formatDate(v.date,isJa)}</span>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>startEditNote(v)} style={{background:"transparent",border:"none",color:"#5a8a6a",fontSize:12,cursor:"pointer"}}>{v.note?"✏️":"💬"}</button>
+                    <button onClick={()=>onDelete(v.date)} style={{background:"transparent",border:"none",color:"#6a4a4a",fontSize:12,cursor:"pointer"}}>✕</button>
+                  </div>
+                </div>
+                {editingDate===v.date ? (
+                  <div style={{display:"flex",gap:6,marginTop:8}}>
+                    <input value={editNoteVal} onChange={e=>setEditNoteVal(e.target.value)} autoFocus
+                      placeholder={isJa?"一言メモ...":"Add a note..."}
+                      onKeyDown={e=>{if(e.key==="Enter")saveEditNote();}}
+                      style={{flex:1,padding:"6px 10px",background:"#0a1a0a",border:"1px solid #3a5a3a",borderRadius:6,color:"#e8dcc8",fontSize:12,outline:"none",fontFamily:"inherit"}}/>
+                    <button onClick={saveEditNote} style={{padding:"6px 10px",background:"#2a5a2a",border:"none",borderRadius:6,color:"#a8d4a8",fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✓</button>
+                  </div>
+                ) : v.note ? (
+                  <div style={{fontSize:12,color:"#8aaa8a",marginTop:6,fontStyle:"italic",paddingLeft:2}}>💬 {v.note}</div>
+                ) : null}
+              </div>
+            ))
+          }
+        </div>
+        {picking?(
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <input type="date" value={inputDate} max={today()} onChange={e=>setInputDate(e.target.value)}
+                style={{flex:1,padding:"9px 12px",background:"#0d150d",border:"1px solid #3a5a3a",borderRadius:8,color:"#e8dcc8",fontSize:14,outline:"none",fontFamily:"inherit"}}/>
+            </div>
+            <input value={inputNote} onChange={e=>setInputNote(e.target.value)}
+              placeholder={isJa?"一言メモ（任意）...":"Add a note (optional)..."}
+              style={{padding:"9px 12px",background:"#0d150d",border:"1px solid #3a5a3a",borderRadius:8,color:"#e8dcc8",fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={()=>{onAdd(inputDate,inputNote);setPicking(false);setInputNote("");}} style={{flex:1,padding:"9px 16px",background:"#2a5a2a",border:"1px solid #4a8a4a",borderRadius:8,color:"#a8d4a8",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>✓ {isJa?"追加":"Add"}</button>
+              <button onClick={()=>{setPicking(false);setInputNote("");}} style={{padding:"9px 16px",background:"transparent",border:"1px solid #2a3a2a",borderRadius:8,color:"#5a7a5a",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+            </div>
+          </div>
+        ):(
+          <button onClick={()=>setPicking(true)} style={{width:"100%",padding:"10px",background:"transparent",border:"1px dashed #3a5a3a",borderRadius:8,color:"#5a8a5a",fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>{tx.addDate}</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Share Card (Canvas-generated shareable image) ──────────────────
+function ShareCardModal({ profile, visits, checked, isJa, tx, onClose, earnedBadgeIds=[], earnedTagIds=[], questProgress=[] }) {
+  const canvasRef = useRef(null);
+  const [imgUrl, setImgUrl] = useState(null);
+  const [theme, setTheme] = useState("passport"); // passport | topo | retro
+
+  const totalChecked = Object.values(checked).filter(Boolean).length;
+
+  // Recent 4 visited parks by latest visit date (for 2×2 grid)
+  const recentParks = useMemo(() => {
+    const withDates = parks
+      .filter(p => (visits[p.id]?.length ?? 0) > 0)
+      .map(p => ({ park: p, latest: [...visits[p.id]].map(v=>v.date).sort().reverse()[0] }))
+      .sort((a, b) => b.latest.localeCompare(a.latest));
+    return withDates.slice(0, 4);
+  }, [visits]);
+
+  // Region-by-region stats
+  const regionStats = useMemo(() => {
+    return REGION_ORDER.map(key => {
+      const total = parks.filter(p => p.region === key).length;
+      const done  = parks.filter(p => p.region === key && checked[p.id]).length;
+      const sample = parks.find(p => p.region === key);
+      return { key, label: isJa ? sample.regionJa : key, done, total };
+    });
+  }, [checked, isJa]);
+
+  // Longest trip streak (for streak badge on share card)
+  const longestStreak = useMemo(() => computeTripStreaks(visits).longest, [visits]);
+
+  // Earned badge icons (all badges + tag badges combined, capped for display)
+  const earnedBadgeIcons = useMemo(() => {
+    const fromBadges = BADGES.filter(b => earnedBadgeIds.includes(b.id)).map(b => b.icon);
+    const fromTags   = TAG_BADGES.filter(b => earnedTagIds.includes(b.id)).map(b => b.icon);
+    return [...fromBadges, ...fromTags];
+  }, [earnedBadgeIds, earnedTagIds]);
+  const totalBadgeCount = BADGES.length + TAG_BADGES.length;
+  const completedQuestCount = questProgress.filter(q => q.complete).length;
+
+  // Catchphrase pools, tiered by achievement level — random pick per generation
+  const catchphrases = useMemo(() => {
+    const n = totalChecked;
+    let pool;
+    if (n === 0) {
+      pool = isJa
+        ? ["まだ旅は始まっていない", "次の一歩を待っている", "白紙の地図、無限の可能性"]
+        : ["The adventure awaits", "Blank map, endless possibility", "Not yet begun"];
+    } else if (n < 5) {
+      pool = isJa
+        ? ["旅の始まり", "駆け出しの探検家", "最初の一歩を刻んだ", "小さな冒険家"]
+        : ["Just getting started", "Rookie explorer", "First steps taken", "Trail beginner"];
+    } else if (n < 15) {
+      pool = isJa
+        ? ["駆け出しのパークレンジャー", "冒険心に火がついた", "地図を塗り始めた旅人", "週末ワンダラー"]
+        : ["Weekend Wanderer", "Trail Blazer in training", "Getting the itch", "Map filling in"];
+    } else if (n < 30) {
+      pool = isJa
+        ? ["本格派アウトドア派", "国立公園ハンター", "自然に呼ばれる者", "旅の中盤戦"]
+        : ["Seasoned Trailhead Hunter", "Park Chaser", "Called by the wild", "Halfway there"];
+    } else if (n < 45) {
+      pool = isJa
+        ? ["ベテラン国立公園マスター", "地図の大半を制覇", "自然と共に生きる者", "本物の探検家"]
+        : ["Park Veteran", "Nature's Regular", "Seasoned Adventurer", "Trail Master"];
+    } else if (n < 63) {
+      pool = isJa
+        ? ["伝説のパークマスター", "残すはあと少し", "国立公園の生き字引", "頂点を目指す者"]
+        : ["Legendary Park Master", "So close to it all", "Almost Everywhere", "Elite Explorer"];
+    } else {
+      pool = isJa
+        ? ["全63公園制覇！殿堂入り", "アメリカ国立公園グランドマスター", "伝説となった旅人"]
+        : ["ALL 63 PARKS — Hall of Fame", "National Parks Grand Master", "The Complete Journey"];
+    }
+    return pool[Math.floor(Math.random() * pool.length)];
+  }, [totalChecked, isJa]);
+
+  // ── Shared helper: rounded rect ──
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+  }
+
+  function fmtDate(iso) {
+    const d = new Date(iso + "T12:00:00");
+    return isJa
+      ? `${d.getMonth()+1}/${d.getDate()}`
+      : d.toLocaleDateString("en-US", { month:"short", day:"numeric" });
+  }
+
+  // ── Shared: generation timestamp (small, bottom of card) ──
+  const generatedAt = useMemo(() => new Date(), []);
+  function drawTimestamp(ctx, cx, y, color, fontFamily) {
+    const stamp = isJa
+      ? `${tx.generatedOn}: ${generatedAt.getFullYear()}/${generatedAt.getMonth()+1}/${generatedAt.getDate()} ${String(generatedAt.getHours()).padStart(2,"0")}:${String(generatedAt.getMinutes()).padStart(2,"0")}`
+      : `${tx.generatedOn}: ${generatedAt.toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"})} ${String(generatedAt.getHours()).padStart(2,"0")}:${String(generatedAt.getMinutes()).padStart(2,"0")}`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = color;
+    ctx.font = `16px ${fontFamily}`;
+    ctx.fillText(stamp, cx, y);
+  }
+
+  // ══════════════════════════════════════════════════════
+  // THEME 1: National Park Passport (deep green, elegant serif)
+  // ══════════════════════════════════════════════════════
+  function drawPassport(ctx, W, H) {
+    const cx = W / 2;
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, "#152816"); grad.addColorStop(1, "#0a1410");
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
+
+    const rGrad = ctx.createRadialGradient(cx, H*0.1, 0, cx, H*0.1, H*0.6);
+    rGrad.addColorStop(0, "rgba(90,150,90,0.18)"); rGrad.addColorStop(1, "rgba(90,150,90,0)");
+    ctx.fillStyle = rGrad; ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = "#3a6a4a"; ctx.lineWidth = 3;
+    ctx.strokeRect(24, 24, W-48, H-48);
+    ctx.strokeStyle = "#2a4a3a"; ctx.lineWidth = 1;
+    ctx.strokeRect(38, 38, W-76, H-76);
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#7aae7a"; ctx.font = "500 24px Georgia, serif"; ctx.letterSpacing = "5px";
+    ctx.fillText(isJa ? "アメリカ国立公園" : "U.S. NATIONAL PARKS", cx, 100);
+    ctx.letterSpacing = "0px";
+
+    ctx.fillStyle = "#e8f0e0"; ctx.font = "700 180px Georgia, serif";
+    ctx.fillText(String(totalChecked), cx, 290);
+
+    ctx.fillStyle = "#9ac89a"; ctx.font = "400 30px Georgia, serif";
+    ctx.fillText(isJa ? `／ ${parks.length} 公園 訪問済み` : `of ${parks.length} parks visited`, cx, 332);
+
+    drawPill(ctx, cx, 370, catchphrases, "#5a9a6a", "rgba(90,160,100,0.15)", "#c8e8c8", "italic 600 28px Georgia, serif");
+    const streakOffset = drawStreakBadge(ctx, cx, 432, "#5a9a6a", "rgba(90,160,100,0.1)", "#8ad49a", "600 20px Georgia, serif");
+
+    line(ctx, cx, 452 + streakOffset);
+    ctx.fillStyle = "#6a9a6a"; ctx.font = "500 22px Georgia, serif";
+    ctx.fillText(isJa ? "地域別 達成率" : "PROGRESS BY REGION", cx, 490 + streakOffset);
+
+    drawRegionGrid(ctx, cx, 520 + streakOffset, "#a8c8a8", "#7aae7a", "#1a2e1a", "#5acc5a");
+
+    const dividerY = 520 + streakOffset + Math.ceil(regionStats.length/2) * 56 + 14;
+    line(ctx, cx, dividerY);
+    ctx.fillStyle = "#6a9a6a"; ctx.font = "500 22px Georgia, serif";
+    ctx.fillText(isJa ? "直近訪れた公園" : "RECENTLY VISITED", cx, dividerY + 36);
+
+    drawRecentGrid(ctx, cx, dividerY + 60, "#1a2e18", "#2a4a2a", "#eef4e8", "#6a9a6a", false, "#5acc5a");
+
+    const badgeShowcaseY = dividerY + 60 + 338 + 24;
+    const showcaseResult = drawBadgeShowcase(ctx, cx, badgeShowcaseY, "#111e11", "#2a4a3a", "#8aaa8a", "#0a1a0a", "#5acc5a");
+    const nameBadgeY = Math.max(H - 88, showcaseResult.nextY + 40);
+
+    drawNameBadge(ctx, cx, nameBadgeY, "👤", "#0f1f0f", "#3a6a4a", "#a8d4a8", "Georgia, serif");
+    drawTimestamp(ctx, cx, nameBadgeY + 72, "#3a5a4a", "Georgia, serif");
+
+    function line(ctx, cx, y) {
+      ctx.strokeStyle = "#3a6a4a"; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(cx-200, y); ctx.lineTo(cx+200, y); ctx.stroke();
+    }
+    return Math.ceil(nameBadgeY + 72 + 50);
+  }
+
+  // ══════════════════════════════════════════════════════
+  // THEME 2: Topographic Map (contour lines, outdoorsy)
+  // ══════════════════════════════════════════════════════
+  function drawTopo(ctx, W, H) {
+    const cx = W / 2;
+    ctx.fillStyle = "#0d1712"; ctx.fillRect(0, 0, W, H);
+
+    // Contour line rings (decorative, radiating from top-center)
+    ctx.strokeStyle = "rgba(120,160,120,0.10)"; ctx.lineWidth = 1.5;
+    for (let r = 60; r < 1300; r += 55) {
+      ctx.beginPath();
+      ctx.ellipse(cx, 140, r, r*0.85, 0, 0, Math.PI*2);
+      ctx.stroke();
+    }
+    // Grid overlay (map-like)
+    ctx.strokeStyle = "rgba(120,160,120,0.06)"; ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 60) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 60) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+    ctx.strokeStyle = "#4a7a5a"; ctx.lineWidth = 2;
+    ctx.strokeRect(20, 20, W-40, H-40);
+    // Corner ticks
+    [[20,20],[W-20,20],[20,H-20],[W-20,H-20]].forEach(([x,y])=>{
+      ctx.fillStyle = "#5a9a6a";
+      ctx.fillRect(x-3,y-3,6,6);
+    });
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#6adc8a"; ctx.font = "600 22px 'Courier New', monospace"; ctx.letterSpacing = "6px";
+    ctx.fillText(isJa ? "アメリカ国立公園 · 記録" : "U.S. NATIONAL PARKS · LOG", cx, 100);
+    ctx.letterSpacing = "0px";
+
+    // Elevation-style number
+    ctx.fillStyle = "#eafbea"; ctx.font = "800 180px 'Courier New', monospace";
+    ctx.fillText(String(totalChecked), cx, 290);
+    ctx.fillStyle = "#5adc7a"; ctx.font = "600 26px 'Courier New', monospace";
+    ctx.fillText(isJa ? `PARKS 訪問 / ${parks.length}` : `PARKS VISITED / ${parks.length}`, cx, 328);
+
+    drawPill(ctx, cx, 368, catchphrases.toUpperCase(), "#4adc6a", "rgba(60,180,90,0.12)", "#8af0a0", "700 24px 'Courier New', monospace");
+    const streakOffset = drawStreakBadge(ctx, cx, 430, "#3a8a4a", "rgba(60,180,90,0.08)", "#6adc8a", "600 18px 'Courier New', monospace");
+
+    dashLine(cx, 448 + streakOffset);
+    ctx.fillStyle = "#5adc7a"; ctx.font = "600 20px 'Courier New', monospace"; ctx.letterSpacing="2px";
+    ctx.fillText(isJa ? "地域別 達成率" : "PROGRESS BY REGION", cx, 486 + streakOffset);
+    ctx.letterSpacing = "0px";
+
+    drawRegionGrid(ctx, cx, 516 + streakOffset, "#c0e8c8", "#4adc6a", "#152a18", "#3adc5a");
+
+    const dividerY = 516 + streakOffset + Math.ceil(regionStats.length/2) * 56 + 14;
+    dashLine(cx, dividerY);
+    ctx.fillStyle = "#5adc7a"; ctx.font = "600 20px 'Courier New', monospace"; ctx.letterSpacing="2px";
+    ctx.fillText(isJa ? "直近訪れた公園" : "RECENTLY VISITED", cx, dividerY + 36);
+    ctx.letterSpacing = "0px";
+
+    drawRecentGrid(ctx, cx, dividerY + 60, "#0f1f14", "#2a5a3a", "#eafbea", "#4adc6a", true, "#3adc5a");
+
+    const badgeShowcaseY = dividerY + 60 + 338 + 24;
+    const showcaseResult = drawBadgeShowcase(ctx, cx, badgeShowcaseY, "#0d1a10", "#2a5a3a", "#5adc7a", "#0a1510", "#4adc6a");
+    const nameBadgeY = Math.max(H - 88, showcaseResult.nextY + 40);
+
+    drawNameBadge(ctx, cx, nameBadgeY, "◉", "#0f1f14", "#3a7a4a", "#5adc7a", "'Courier New', monospace");
+    drawTimestamp(ctx, cx, nameBadgeY + 72, "#2a5a3a", "'Courier New', monospace");
+
+    function dashLine(cx, y) {
+      ctx.strokeStyle = "#3a7a4a"; ctx.lineWidth = 1.5; ctx.setLineDash([6,5]);
+      ctx.beginPath(); ctx.moveTo(cx-200, y); ctx.lineTo(cx+200, y); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    return Math.ceil(nameBadgeY + 72 + 50);
+  }
+
+  // ══════════════════════════════════════════════════════
+  // THEME 3: Retro WPA Poster (warm mustard/brick, flat bold)
+  // ══════════════════════════════════════════════════════
+  function drawRetro(ctx, W, H) {
+    const cx = W / 2;
+    ctx.fillStyle = "#e8d5a8"; ctx.fillRect(0, 0, W, H);
+
+    // Sun-ray burst behind number (retro poster motif)
+    ctx.save();
+    ctx.translate(cx, 240);
+    for (let i = 0; i < 16; i++) {
+      ctx.rotate(Math.PI / 8);
+      ctx.fillStyle = i % 2 === 0 ? "rgba(196,90,50,0.10)" : "rgba(196,90,50,0.05)";
+      ctx.beginPath();
+      ctx.moveTo(0,0); ctx.arc(0,0,560,0,Math.PI/8); ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+
+    // Thick border frame
+    ctx.strokeStyle = "#8a3a2a"; ctx.lineWidth = 10;
+    ctx.strokeRect(30, 30, W-60, H-60);
+    ctx.strokeStyle = "#c8a04a"; ctx.lineWidth = 3;
+    ctx.strokeRect(48, 48, W-96, H-96);
+
+    // Decorative corner stars
+    function star(cx, cy, size, color) {
+      ctx.fillStyle = color;
+      ctx.save(); ctx.translate(cx, cy);
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        ctx.rotate(Math.PI / 5);
+        ctx.lineTo(0, size);
+        ctx.rotate(Math.PI / 5);
+        ctx.lineTo(0, size * 0.4);
+      }
+      ctx.closePath(); ctx.fill(); ctx.restore();
+    }
+    [[80,80],[W-80,80],[80,H-80],[W-80,H-80]].forEach(([x,y]) => star(x, y, 12, "#c8a04a"));
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#8a3a2a"; ctx.font = "800 26px Georgia, serif"; ctx.letterSpacing = "6px";
+    ctx.fillText(isJa ? "アメリカ国立公園" : "U.S. NATIONAL PARKS", cx, 105);
+    ctx.letterSpacing = "0px";
+
+    // Double underline accent below title
+    ctx.strokeStyle = "#c8a04a"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx-140, 122); ctx.lineTo(cx+140, 122); ctx.stroke();
+    ctx.strokeStyle = "#8a3a2a"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx-100, 128); ctx.lineTo(cx+100, 128); ctx.stroke();
+
+    ctx.fillStyle = "#8a3a2a"; ctx.font = "900 190px Georgia, serif";
+    ctx.fillText(String(totalChecked), cx, 300);
+    ctx.fillStyle = "#3a5a3a"; ctx.font = "700 30px Georgia, serif";
+    ctx.fillText(isJa ? `／ ${parks.length} 公園 訪問済み` : `of ${parks.length} parks visited`, cx, 340);
+
+    drawPill(ctx, cx, 378, catchphrases, "#8a3a2a", "rgba(138,58,42,0.12)", "#8a3a2a", "italic 700 28px Georgia, serif");
+    const streakOffset = drawStreakBadge(ctx, cx, 440, "#8a3a2a", "rgba(196,90,50,0.1)", "#8a3a2a", "700 18px Georgia, serif");
+
+    thickLine(cx, 458 + streakOffset);
+    ctx.fillStyle = "#5a3a2a"; ctx.font = "700 22px Georgia, serif"; ctx.letterSpacing="2px";
+    ctx.fillText(isJa ? "地域別 達成率" : "PROGRESS BY REGION", cx, 496 + streakOffset);
+    ctx.letterSpacing = "0px";
+
+    drawRegionGrid(ctx, cx, 526 + streakOffset, "#5a3a2a", "#8a3a2a", "#d8c090", "#c85a30");
+
+    const dividerY = 526 + streakOffset + Math.ceil(regionStats.length/2) * 56 + 14;
+    thickLine(cx, dividerY);
+    ctx.fillStyle = "#5a3a2a"; ctx.font = "700 22px Georgia, serif"; ctx.letterSpacing="2px";
+    ctx.fillText(isJa ? "直近訪れた公園" : "RECENTLY VISITED", cx, dividerY + 36);
+    ctx.letterSpacing = "0px";
+
+    drawRecentGrid(ctx, cx, dividerY + 60, "#dcc898", "#8a3a2a", "#4a2a1a", "#8a3a2a", false, "#c85a30");
+
+    const badgeShowcaseY = dividerY + 60 + 338 + 24;
+    const showcaseResult = drawBadgeShowcase(ctx, cx, badgeShowcaseY, "#e8d5a8", "#8a3a2a", "#5a3a2a", "#dcc898", "#c85a30");
+    const nameBadgeY = Math.max(H - 88, showcaseResult.nextY + 40);
+
+    drawNameBadge(ctx, cx, nameBadgeY, "★", "#dcc898", "#8a3a2a", "#8a3a2a", "Georgia, serif");
+    drawTimestamp(ctx, cx, nameBadgeY + 72, "#7a5a3a", "Georgia, serif");
+
+    function thickLine(cx, y) {
+      ctx.strokeStyle = "#8a3a2a"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(cx-200, y); ctx.lineTo(cx+200, y); ctx.stroke();
+    }
+    return Math.ceil(nameBadgeY + 72 + 50);
+  }
+
+  // ── Shared: catchphrase pill ──
+  function drawPill(ctx, cx, y, text, borderColor, bgColor, textColor, font) {
+    ctx.font = font;
+    const w = ctx.measureText(text).width + 56, h = 50;
+    const x = cx - w/2;
+    ctx.fillStyle = bgColor; ctx.strokeStyle = borderColor; ctx.lineWidth = 1.5;
+    roundRect(ctx, x, y, w, h, h/2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = textColor;
+    ctx.fillText(text, cx, y + h*0.66);
+  }
+
+  // ── Shared: streak badge (only rendered when a trip streak exists) ──
+  function drawStreakBadge(ctx, cx, y, borderColor, bgColor, textColor, font) {
+    if (!longestStreak || longestStreak.count < 2) return 0; // no badge, no extra space used
+    const text = `🔥 ${tx.parksInOneTrip(longestStreak.count)}`;
+    ctx.font = font;
+    const w = ctx.measureText(text).width + 44, h = 38;
+    const x = cx - w/2;
+    ctx.fillStyle = bgColor; ctx.strokeStyle = borderColor; ctx.lineWidth = 1.2;
+    roundRect(ctx, x, y, w, h, h/2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = textColor;
+    ctx.fillText(text, cx, y + h*0.66);
+    return h + 14; // space consumed, so caller can shift subsequent content down
+  }
+
+  // ── Shared: badge showcase strip (earned badge icons + quest count) ──
+  function drawBadgeShowcase(ctx, cx, y, cardBg, cardBorder, labelColor, iconBg, accentColor) {
+    if (earnedBadgeIcons.length === 0 && completedQuestCount === 0) return { height: 0, nextY: y };
+
+    const boxW = 980, headerH = 46;
+    const maxIcons = 10;
+    const iconsToShow = earnedBadgeIcons.slice(0, maxIcons);
+    const extra = earnedBadgeIcons.length - iconsToShow.length;
+    const chipSize = 76, chipGap = 16;
+    const rowCount = Math.ceil((iconsToShow.length + (extra>0?1:0)) / 5);
+    const iconRowsH = rowCount * (chipSize + 20);
+    const boxH = headerH + iconRowsH + 24;
+
+    const x = cx - boxW/2;
+    // Card with subtle gradient fill
+    const grad = ctx.createLinearGradient(x, y, x, y + boxH);
+    grad.addColorStop(0, cardBg);
+    grad.addColorStop(1, cardBg);
+    ctx.fillStyle = grad; ctx.strokeStyle = accentColor; ctx.lineWidth = 2;
+    roundRect(ctx, x, y, boxW, boxH, 16); ctx.fill(); ctx.stroke();
+
+    // Header row with accent-colored labels
+    ctx.textAlign = "left";
+    ctx.font = "700 26px Georgia, serif";
+    ctx.fillStyle = accentColor;
+    const badgeLabel = isJa ? `🏅 バッジ ${earnedBadgeIcons.length}/${totalBadgeCount}` : `🏅 Badges ${earnedBadgeIcons.length}/${totalBadgeCount}`;
+    ctx.fillText(badgeLabel, x + 28, y + 36);
+
+    ctx.textAlign = "right";
+    const questLabel = isJa ? `🗺 クエスト ${completedQuestCount}/${questProgress.length}` : `🗺 Quests ${completedQuestCount}/${questProgress.length}`;
+    ctx.fillText(questLabel, x + boxW - 28, y + 36);
+
+    // Icon grid: large glowing chips, 5 per row
+    ctx.textAlign = "center";
+    const perRow = 5;
+    const rowW = perRow * chipSize + (perRow-1) * chipGap;
+    let idx = 0;
+    const allChips = [...iconsToShow.map(ic=>({icon:ic})), ...(extra>0?[{extra}]:[])];
+    allChips.forEach((chip) => {
+      const row = Math.floor(idx / perRow);
+      const col = idx % perRow;
+      const rowItems = Math.min(perRow, allChips.length - row*perRow);
+      const rowStartX = cx - (rowItems*chipSize + (rowItems-1)*chipGap)/2 + chipSize/2;
+      const chipX = rowStartX + col * (chipSize + chipGap);
+      const chipY = y + headerH + 30 + row * (chipSize + 20) + chipSize/2;
+
+      // Glow ring behind chip
+      ctx.fillStyle = accentColor; ctx.globalAlpha = 0.18;
+      ctx.beginPath(); ctx.arc(chipX, chipY, chipSize/2 + 6, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // Chip circle
+      ctx.fillStyle = iconBg; ctx.strokeStyle = accentColor; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(chipX, chipY, chipSize/2, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+      if (chip.extra) {
+        ctx.font = "700 26px Georgia, serif";
+        ctx.fillStyle = accentColor;
+        ctx.fillText(`+${chip.extra}`, chipX, chipY + 9);
+      } else {
+        ctx.font = "42px sans-serif";
+        ctx.fillStyle = "#000";
+        ctx.fillText(chip.icon, chipX, chipY + 14);
+      }
+      idx++;
+    });
+
+    return { height: boxH, nextY: y + boxH };
+  }
+
+  // ── Shared: large profile-name badge (footer) ──
+  function drawNameBadge(ctx, cx, y, icon, bgColor, borderColor, textColor, fontFamily) {
+    ctx.textAlign = "center";
+    ctx.font = `700 32px ${fontFamily}`;
+    const text = `${icon}  ${profile.name}`;
+    const w = ctx.measureText(text).width + 64, h = 60;
+    const x = cx - w/2;
+    ctx.fillStyle = bgColor; ctx.strokeStyle = borderColor; ctx.lineWidth = 2;
+    roundRect(ctx, x, y, w, h, h/2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = textColor;
+    ctx.fillText(text, cx, y + h*0.66);
+  }
+
+  // ── Shared: region progress 2-col grid ──
+  function drawRegionGrid(ctx, cx, startY, labelColor, valueColor, trackColor, fillColor) {
+    const barAreaX = 90, barAreaW = 1080 - 180;
+    const colGap = 16, colW = (barAreaW - colGap) / 2;
+    regionStats.forEach((r, i) => {
+      const col = i % 2, row = Math.floor(i / 2);
+      const bx = barAreaX + col * (colW + colGap);
+      const by = startY + row * 56;
+      const pct = r.total > 0 ? r.done / r.total : 0;
+
+      ctx.textAlign = "left";
+      ctx.fillStyle = labelColor; ctx.font = "500 19px Georgia, serif";
+      ctx.fillText(r.label, bx, by);
+      ctx.textAlign = "right";
+      ctx.fillStyle = valueColor; ctx.font = "500 17px Georgia, serif";
+      ctx.fillText(`${r.done}/${r.total}`, bx + colW, by);
+
+      const barY = by + 9, barH = 9;
+      ctx.fillStyle = trackColor;
+      roundRect(ctx, bx, barY, colW, barH, 4); ctx.fill();
+      if (pct > 0) {
+        ctx.fillStyle = fillColor;
+        roundRect(ctx, bx, barY, colW * pct, barH, 4); ctx.fill();
+      }
+    });
+    ctx.textAlign = "center";
+  }
+
+  // ── Shared: recent visits 2×2 grid ──
+  function drawRecentGrid(ctx, cx, startY, cardBg, cardBorder, textColor, dateColor, mono, accentColor) {
+    const gridW = 940, gridGap = 22;
+    const cardW = (gridW - gridGap) / 2, cardH = 158;
+    const startX = cx - gridW/2;
+    const fontFamily = mono ? "'Courier New', monospace" : "Georgia, serif";
+    const accent = accentColor || textColor;
+
+    for (let i = 0; i < 4; i++) {
+      const col = i % 2, row = Math.floor(i / 2);
+      const x = startX + col * (cardW + gridGap);
+      const y = startY + row * (cardH + gridGap);
+
+      // Card background with subtle depth
+      ctx.fillStyle = cardBg; ctx.strokeStyle = cardBorder; ctx.lineWidth = 1.5;
+      roundRect(ctx, x, y, cardW, cardH, 12); ctx.fill(); ctx.stroke();
+
+      // Decorative corner accent (top-left notch)
+      ctx.fillStyle = accent; ctx.globalAlpha = 0.12;
+      roundRect(ctx, x, y, cardW, 5, 2); ctx.fill();
+      ctx.globalAlpha = 1;
+
+      const entry = recentParks[i];
+      ctx.textAlign = "center";
+      if (entry) {
+        const name = isJa ? entry.park.ja : entry.park.name;
+        // Emoji circle badge
+        ctx.fillStyle = accent; ctx.globalAlpha = 0.13;
+        ctx.beginPath(); ctx.arc(x + cardW/2, y + 44, 30, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = textColor; ctx.font = `38px ${fontFamily}`;
+        ctx.fillText(entry.park.emoji, x + cardW/2, y + 56);
+
+        // Park name — bigger, bolder
+        let displayName = name;
+        ctx.font = `700 28px ${fontFamily}`;
+        while (ctx.measureText(displayName).width > cardW - 28 && displayName.length > 3) {
+          displayName = displayName.slice(0, -2) + "…";
+        }
+        ctx.fillStyle = textColor;
+        ctx.fillText(displayName, x + cardW/2, y + 104);
+
+        // Date pill
+        ctx.font = `600 20px ${fontFamily}`;
+        const dateText = fmtDate(entry.latest);
+        const dw = ctx.measureText(dateText).width + 24;
+        ctx.fillStyle = accent; ctx.globalAlpha = 0.15;
+        roundRect(ctx, x + cardW/2 - dw/2, y + 122, dw, 28, 14); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = dateColor;
+        ctx.fillText(dateText, x + cardW/2, y + 141);
+      } else {
+        ctx.fillStyle = dateColor; ctx.font = `italic 20px ${fontFamily}`;
+        ctx.globalAlpha = 0.5;
+        ctx.fillText("—", x + cardW/2, y + cardH/2 + 6);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const W = 1080, H = 1950; // tall enough for 2x2 grid + stats + streak + full badge showcase (up to 4 rows) + name badge + timestamp, all dynamically positioned
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+
+    if (theme === "passport") drawPassport(ctx, W, H);
+    else if (theme === "topo") drawTopo(ctx, W, H);
+    else drawRetro(ctx, W, H);
+
+    setImgUrl(canvas.toDataURL("image/png"));
+  }, [theme, totalChecked, recentParks, regionStats, catchphrases, isJa, profile.name]);
+
+  const handleDownload = () => {
+    if (!imgUrl) return;
+    const a = document.createElement("a");
+    a.href = imgUrl;
+    a.download = `national-parks-${profile.name}-${theme}-${today()}.png`;
+    a.click();
+  };
+
+  const handleShare = async () => {
+    if (!imgUrl || typeof navigator==="undefined" || !navigator.share) { handleDownload(); return; }
+    try {
+      const blob = await (await fetch(imgUrl)).blob();
+      const file = new File([blob], "national-parks.png", { type: "image/png" });
+      await navigator.share({ files: [file], title: isJa ? "国立公園チェックリスト" : "National Parks Checklist" });
+    } catch { handleDownload(); }
+  };
+
+  const themeLabels = {
+    passport: isJa ? "🏔 パスポート" : "🏔 Passport",
+    topo:     isJa ? "🗺 地形図" : "🗺 Topo Map",
+    retro:    isJa ? "🎨 レトロ" : "🎨 Retro",
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2500,padding:16,overflowY:"auto"}} onClick={onClose}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"#0d150d",border:"1px solid #2a4a2a",borderRadius:16,padding:16,maxWidth:420,width:"100%",margin:"auto"}}>
+
+        {/* Theme selector */}
+        <div style={{display:"flex",gap:6,marginBottom:12}}>
+          {Object.entries(themeLabels).map(([key,label]) => (
+            <button key={key} onClick={()=>setTheme(key)} style={{
+              flex:1, padding:"7px 4px", borderRadius:8, fontSize:11, cursor:"pointer", fontFamily:"inherit",
+              background: theme===key?"#2a5a2a":"transparent",
+              border:`1px solid ${theme===key?"#5a9a5a":"#2a3a2a"}`,
+              color: theme===key?"#a8d4a8":"#6a8a6a",
+            }}>{label}</button>
+          ))}
+        </div>
+
+        <canvas ref={canvasRef} style={{width:"100%",borderRadius:10,display:"block"}} />
+        <div style={{display:"flex",gap:8,marginTop:14}}>
+          <button onClick={handleShare} style={{flex:1,padding:"12px",background:"#2a5a2a",border:"1px solid #4a8a4a",borderRadius:8,color:"#a8d4a8",fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+            {(typeof navigator!=="undefined"&&navigator.share) ? (isJa?"📤 共有":"📤 Share") : (isJa?"⬇ 保存":"⬇ Save")}
+          </button>
+          <button onClick={onClose} style={{padding:"12px 20px",background:"transparent",border:"1px solid #2a3a2a",borderRadius:8,color:"#6a8a6a",fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+            {tx.cancel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+function saveData(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+}
+// Normalize a visits object so every entry is {date, note} — migrates old string[] format
+function migrateVisits(visits) {
+  const out = {};
+  Object.entries(visits || {}).forEach(([pid, arr]) => {
+    out[pid] = (arr || []).map(v => typeof v === "string" ? { date: v, note: "" } : v);
+  });
+  return out;
+}
+function initStore() {
+  const existing = loadData();
+  if (existing?.profiles) {
+    return { ...existing, profiles: existing.profiles.map(p => ({ ...p, visits: migrateVisits(p.visits) })) };
+  }
+  // Migrate old single-profile data (pre-profiles version)
+  const oldKey = "np_checklist_v1";
+  let oldVisits = {};
+  try { const r = localStorage.getItem(oldKey); if (r) oldVisits = JSON.parse(r); } catch {}
+  const id = uid();
+  return { activeId: id, profiles: [{ id, name: "Me", visits: migrateVisits(oldVisits) }] };
+}
+
+// ── Backup: export/import ──
+function exportStoreToFile(store) {
+  const payload = { app: "national-parks-checklist", version: 1, exportedAt: new Date().toISOString(), data: store };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `national-parks-backup-${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function parseImportedFile(text) {
+  const parsed = JSON.parse(text);
+  const data = parsed?.data ?? parsed; // tolerate raw store or wrapped payload
+  if (!data?.profiles || !Array.isArray(data.profiles)) throw new Error("invalid shape");
+  return { ...data, profiles: data.profiles.map(p => ({ ...p, visits: migrateVisits(p.visits) })) };
+}
+
+// ── Main App ──────────────────────────────────────────────────────
+function App() {
+  const [store,         setStore]         = useState(() => initStore());
+  const [lang,          setLang]          = useState(() => { try { return localStorage.getItem(LANG_KEY)||"en"; } catch { return "en"; } });
+  const [siteTheme,     setSiteTheme]     = useState(() => { try { return localStorage.getItem(THEME_KEY)||"passport"; } catch { return "passport"; } });
+  const [tab,           setTab]           = useState("list");
+  const [activeRegion,  setActiveRegion]  = useState("all");
+  const [search,        setSearch]        = useState("");
+  const [sortMode,      setSortMode]      = useState("az"); // az | dateDesc | dateAsc | unvisited
+  const [showSortMenu,  setShowSortMenu]  = useState(false);
+  const [showBadges,    setShowBadges]    = useState(false);
+  const [selectedPark,  setSelectedPark]  = useState(null);
+  const [dateModalPark, setDateModalPark] = useState(null);
+  const [hoveredMapId,  setHoveredMapId]  = useState(null);
+  const [showProfiles,  setShowProfiles]  = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
+  const [showThemePicker, setShowThemePicker] = useState(false);
+  const [confirm,       setConfirm]       = useState(null); // { message, onConfirm }
+  const parkRefs = useRef({});
+
+  const isJa = lang === "ja";
+  const tx   = i18n[lang];
+  const T    = THEMES[siteTheme];
+
+  useEffect(() => { try { localStorage.setItem(THEME_KEY, siteTheme); } catch {} }, [siteTheme]);
+
+  // Persist
+  useEffect(() => { saveData(store); }, [store]);
+  useEffect(() => { try { localStorage.setItem(LANG_KEY, lang); } catch {} }, [lang]);
+
+  const activeProfile = store.profiles.find(p=>p.id===store.activeId) || store.profiles[0];
+  const visits = activeProfile.visits;
+
+  const setVisits = (updater) => {
+    setStore(prev => {
+      const newVisits = typeof updater === "function" ? updater(activeProfile.visits) : updater;
+      return {
+        ...prev,
+        profiles: prev.profiles.map(p => p.id===prev.activeId ? {...p, visits:newVisits} : p),
+      };
+    });
+  };
+
+  const checked = useMemo(() => {
+    const o={};
+    parks.forEach(p=>{o[p.id]=(visits[p.id]?.length??0)>0;});
+    return o;
+  }, [visits]);
+
+  const totalChecked = Object.values(checked).filter(Boolean).length;
+  const progress     = Math.round((totalChecked/parks.length)*100);
+
+  const earnedBadges = useMemo(() => computeEarnedBadges(visits, checked), [visits, checked]);
+  const earnedTagBadges = useMemo(() => computeTagBadges(visits), [visits]);
+  const questProgress = useMemo(() => computeQuestProgress(checked), [checked]);
+
+  const regions = useMemo(()=>REGION_ORDER.map(key=>{
+    const s=parks.find(p=>p.region===key);
+    return {key, label:isJa?s.regionJa:key};
+  }),[isJa]);
+
+  const filteredParks = useMemo(()=>{
+    const q=search.toLowerCase();
+    const getLatestDate = (id) => {
+      const arr = visits[id];
+      if (!arr || arr.length === 0) return null;
+      return [...arr].sort((a,b)=>b.date.localeCompare(a.date))[0].date;
+    };
+    return parks.filter(p=>{
+      const matchRegion=activeRegion==="all"||p.region===activeRegion;
+      const matchSearch=!search||p.name.toLowerCase().includes(q)||p.ja.includes(search)||p.state.toLowerCase().includes(q)||p.stateJa.includes(search);
+      return matchRegion&&matchSearch;
+    }).sort((a,b)=>{
+      if (sortMode === "az") return a.name.localeCompare(b.name,"en",{sensitivity:"base"});
+      if (sortMode === "dateDesc") {
+        const da = getLatestDate(a.id), db = getLatestDate(b.id);
+        if (!da && !db) return a.name.localeCompare(b.name,"en",{sensitivity:"base"});
+        if (!da) return 1; if (!db) return -1;
+        return db.localeCompare(da);
+      }
+      if (sortMode === "dateAsc") {
+        const da = getLatestDate(a.id), db = getLatestDate(b.id);
+        if (!da && !db) return a.name.localeCompare(b.name,"en",{sensitivity:"base"});
+        if (!da) return 1; if (!db) return -1;
+        return da.localeCompare(db);
+      }
+      if (sortMode === "unvisited") {
+        const ca = checked[a.id]?1:0, cb = checked[b.id]?1:0;
+        if (ca !== cb) return ca - cb;
+        return a.name.localeCompare(b.name,"en",{sensitivity:"base"});
+      }
+      return 0;
+    });
+  },[activeRegion,search,sortMode,visits,checked]);
+
+  const regionCount=(key)=>parks.filter(p=>p.region===key&&checked[p.id]).length;
+
+  const addVisit=(id,date,note="")=>setVisits(prev=>{
+    const ex=prev[id]??[];
+    if(ex.some(v=>v.date===date)) return prev;
+    return {...prev,[id]:[...ex,{date,note}]};
+  });
+  const removeVisit=(id,date)=>setVisits(prev=>({...prev,[id]:(prev[id]??[]).filter(v=>v.date!==date)}));
+  const updateVisitNote=(id,date,note)=>setVisits(prev=>({...prev,[id]:(prev[id]??[]).map(v=>v.date===date?{...v,note}:v)}));
+
+  const toggleCheck=(park)=>{
+    if(!checked[park.id]){
+      addVisit(park.id,today());
+      setDateModalPark(park);
+    } else {
+      const visitCount = visits[park.id]?.length ?? 0;
+      const parkName = isJa ? park.ja : park.name;
+      setConfirm({
+        message: tx.confirmUncheck(visitCount, parkName),
+        onConfirm: () => {
+          setVisits(prev=>({...prev,[park.id]:[]}));
+          setConfirm(null);
+        },
+      });
+    }
+  };
+
+  const resetAll=()=>{
+    setConfirm({
+      message: `${tx.confirmReset} "${activeProfile.name}"?`,
+      onConfirm: ()=>{ setVisits({}); setConfirm(null); },
+    });
+  };
+
+  const scrollToPark=(id)=>{
+    setTab("list");setActiveRegion("all");setSearch("");
+    setTimeout(()=>parkRefs.current[id]?.scrollIntoView({behavior:"smooth",block:"center"}),100);
+  };
+
+  // Profile actions
+  const createProfile=(name)=>{
+    const id=uid();
+    setStore(prev=>({...prev, profiles:[...prev.profiles,{id,name,visits:{}}], activeId:id}));
+  };
+  const switchProfile=(id)=>setStore(prev=>({...prev,activeId:id}));
+  const renameProfile=(id,name)=>setStore(prev=>({...prev,profiles:prev.profiles.map(p=>p.id===id?{...p,name}:p)}));
+  const deleteProfile=(id)=>{
+    const prof=store.profiles.find(p=>p.id===id);
+    setConfirm({
+      message:`${tx.confirmDelete} "${prof?.name}"?`,
+      onConfirm:()=>{
+        setStore(prev=>{
+          const newProfiles=prev.profiles.filter(p=>p.id!==id);
+          const newActive=prev.activeId===id?newProfiles[0].id:prev.activeId;
+          return {...prev,profiles:newProfiles,activeId:newActive};
+        });
+        setConfirm(null);
+      },
+    });
+  };
+
+  // Backup: export/import handlers
+  const handleExport = () => exportStoreToFile(store);
+  const handleImport = (file) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const imported = parseImportedFile(reader.result);
+        setConfirm({
+          message: tx.importConfirm,
+          onConfirm: () => {
+            setStore(imported);
+            setConfirm(null);
+            setShowProfiles(false);
+          },
+        });
+      } catch {
+        setConfirm({ message: tx.importError, onConfirm: () => setConfirm(null) });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const S={
+    btn:(active)=>({padding:"5px 20px",borderRadius:20,fontSize:12,cursor:"pointer",fontFamily:"inherit",background:active?T.btnBgActive:"transparent",border:`1px solid ${active?T.btnBorderActive:T.cardBorder}`,color:active?T.accentText:T.mutedText,transition:"all .2s"}),
+    chip:(active)=>({padding:"4px 11px",borderRadius:20,fontSize:11,cursor:"pointer",fontFamily:"inherit",background:active?T.chipBgActive:"transparent",border:`1px solid ${active?T.chipBorderActive:T.cardBorder}`,color:active?T.chipTextActive:T.chipText}),
+    link:(color,bg,border)=>({flex:1,padding:"7px 0",textAlign:"center",borderRadius:8,fontSize:10,background:bg,border:`1px solid ${border}`,color,textDecoration:"none",display:"block"}),
+    rowBtn:(color)=>({flex:1,padding:"7px 0",fontSize:10,cursor:"pointer",color,background:"transparent",border:"none",borderLeft:`1px solid ${T.cardBorder}`,fontFamily:"inherit"}),
+  };
+
+  return (
+    <div style={{minHeight:"100vh",background:T.bg,fontFamily:isJa?"'Hiragino Sans','Noto Sans JP',sans-serif":T.fontBody,color:T.textPrimary,display:"flex",flexDirection:"column",transition:"background .3s ease"}}>
+
+      {/* ── HEADER ── */}
+      <div style={{background:T.headerBg,borderBottom:`1px solid ${T.headerBorder}`,padding:"28px 20px 20px",textAlign:"center",position:"relative"}}>
+        <div style={{position:"absolute",inset:0,backgroundImage:`radial-gradient(ellipse at 50% 0%,${T.chipBgActive}33,transparent 70%)`,pointerEvents:"none"}}/>
+
+        {/* Top-right buttons */}
+        <div style={{position:"absolute",top:14,right:14,left:14,display:"flex",justifyContent:"flex-end",flexWrap:"wrap",gap:6,zIndex:1}}>
+          <button onClick={()=>setShowThemePicker(true)}
+            style={{padding:"4px 10px",background:"transparent",border:`1px solid ${T.headerBorder}`,borderRadius:20,color:T.mutedText,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+            {T.label}
+          </button>
+          <button onClick={()=>setLang(l=>l==="en"?"ja":"en")}
+            style={{padding:"4px 10px",background:"transparent",border:`1px solid ${T.headerBorder}`,borderRadius:20,color:T.mutedText,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+            {tx.langBtn}
+          </button>
+          <button onClick={()=>setShowBadges(true)}
+            style={{padding:"4px 10px",background:"transparent",border:`1px solid ${T.headerBorder}`,borderRadius:20,color:T.mutedText,fontSize:11,cursor:"pointer",fontFamily:"inherit",position:"relative"}}>
+            🏅 {earnedBadges.length + earnedTagBadges.length}
+          </button>
+          <button onClick={()=>setShowProfiles(true)}
+            style={{padding:"4px 10px",background:"transparent",border:`1px solid ${T.headerBorder}`,borderRadius:20,color:T.mutedText,fontSize:11,cursor:"pointer",fontFamily:"inherit"}}>
+            👤
+          </button>
+        </div>
+
+        <div style={{fontSize:11,letterSpacing:"0.3em",color:T.mutedText,textTransform:"uppercase",marginBottom:4,marginTop:36}}>{tx.country}</div>
+        <h1 style={{margin:0,fontSize:"clamp(18px,4vw,28px)",fontWeight:400,color:T.textPrimary,lineHeight:1.2}}>{tx.title}</h1>
+        <div style={{fontSize:11,color:T.textSecondary,marginTop:2}}>{tx.subtitle}</div>
+
+        {/* Active profile name */}
+        <div style={{fontSize:12,color:T.mutedText,marginTop:4,cursor:"pointer"}} onClick={()=>setShowProfiles(true)}>
+          👤 {activeProfile.name}
+        </div>
+
+        {/* Progress */}
+        <div style={{maxWidth:320,margin:"14px auto 0"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+            <span style={{fontSize:11,color:T.textSecondary}}>{tx.visited}</span>
+            <span style={{fontSize:24,fontWeight:300,color:T.accentText}}>{totalChecked}<span style={{fontSize:14,color:T.mutedText}}>/{parks.length}</span></span>
+          </div>
+          <div style={{height:3,background:T.progressTrack,borderRadius:2,overflow:"hidden"}}>
+            <div style={{height:"100%",width:`${progress}%`,background:T.progressFill,borderRadius:2,transition:"width .5s ease"}}/>
+          </div>
+          <div style={{textAlign:"right",fontSize:10,color:T.mutedText,marginTop:3}}>{progress}%</div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:6,marginTop:14,flexWrap:"wrap",rowGap:6}}>
+          <button style={S.btn(tab==="list")} onClick={()=>setTab("list")}>{tx.listTab}</button>
+          <button style={S.btn(tab==="map")}  onClick={()=>setTab("map")}>{tx.mapTab}</button>
+          <button style={S.btn(tab==="timeline")} onClick={()=>setTab("timeline")}>{tx.timelineTab}</button>
+          <button style={S.btn(tab==="stats")} onClick={()=>setTab("stats")}>{tx.statsTab}</button>
+        </div>
+
+        {/* Share + Reset */}
+        {totalChecked>0&&(
+          <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:6,marginTop:8}}>
+            <button onClick={()=>setShowShareCard(true)}
+              style={{padding:"5px 14px",borderRadius:20,fontSize:11,cursor:"pointer",fontFamily:"inherit",background:"transparent",border:`1px solid ${T.cardBorderActive}`,color:T.accentText}}>
+              📤 {isJa?"シェア":"Share"}
+            </button>
+            <button onClick={resetAll}
+              style={{padding:"5px 14px",borderRadius:20,fontSize:11,cursor:"pointer",fontFamily:"inherit",background:"transparent",border:"1px solid #8a4a3a",color:"#c07a5a"}}>
+              🗑 {tx.resetAll}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ── MAP TAB ── */}
+      {tab==="map"&&(
+        <div style={{flex:1,display:"flex",flexDirection:"column"}}>
+          <div style={{padding:"8px 16px 2px",fontSize:11,color:T.mutedText,textAlign:"center"}}>
+            {tx.mapHint}
+          </div>
+          <SVGMap parks={parks} checked={checked} visits={visits} isJa={isJa} onParkClick={p=>setSelectedPark(s=>s?.id===p.id?null:p)} hoveredId={hoveredMapId} setHoveredId={setHoveredMapId} themeColors={T}/>
+          {selectedPark&&(
+            <div style={{margin:"0 12px 12px",background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:10,padding:"16px 18px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+                <div>
+                  <div style={{fontSize:18,color:T.textPrimary,marginBottom:3,fontWeight:600}}>{selectedPark.emoji} {isJa?selectedPark.ja:selectedPark.name}</div>
+                  <div style={{fontSize:12,color:T.mutedText}}>{isJa?selectedPark.name:selectedPark.ja} · {isJa?selectedPark.stateJa:selectedPark.state}</div>
+                  {(visits[selectedPark.id]?.length??0)>0&&<div style={{fontSize:11,color:T.pinVisited,marginTop:4}}>✓ {tx.visits(visits[selectedPark.id].length)}</div>}
+                </div>
+                <button onClick={()=>toggleCheck(selectedPark)} style={{padding:"6px 14px",borderRadius:20,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",flexShrink:0,background:checked[selectedPark.id]?T.btnBgActive:"transparent",border:`1px solid ${checked[selectedPark.id]?T.btnBorderActive:T.cardBorder}`,color:checked[selectedPark.id]?T.accentText:T.mutedText}}>
+                  {checked[selectedPark.id]?"✓ "+tx.checkedLabel:tx.uncheckedLabel}
+                </button>
+              </div>
+              <div style={{display:"flex",gap:6,marginTop:14,flexWrap:"wrap"}}>
+                <a href={npsUrl(selectedPark)} target="_blank" rel="noopener noreferrer" style={{...S.link(T.accentText,T.cardBg,T.cardBorderActive),fontSize:12,padding:"8px 0"}}>🏛 {tx.npsLink}</a>
+                <a href={gmapUrl(selectedPark)} target="_blank" rel="noopener noreferrer" style={{...S.link(T.accentText,T.cardBg,T.cardBorderActive),fontSize:12,padding:"8px 0"}}>📍 {tx.gmapLink}</a>
+                <button onClick={()=>{setDateModalPark(selectedPark);setSelectedPark(null);}} style={{flex:1,padding:"8px 0",borderRadius:8,fontSize:12,cursor:"pointer",background:T.cardBg,border:`1px solid ${T.cardBorder}`,color:T.mutedText,fontFamily:"inherit"}}>📅 {isJa?"訪問日":"Dates"}</button>
+                <button onClick={()=>{scrollToPark(selectedPark.id);setSelectedPark(null);}} style={{flex:1,padding:"8px 0",borderRadius:8,fontSize:12,cursor:"pointer",background:T.cardBg,border:`1px solid ${T.cardBorder}`,color:T.mutedText,fontFamily:"inherit"}}>≡ {tx.listTab}</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── TIMELINE TAB ── */}
+      {tab==="timeline"&&(
+        <TimelineView parks={parks} visits={visits} isJa={isJa} themeColors={T} onParkClick={(park)=>{setTab("map");setSelectedPark(park);}}/>
+      )}
+
+      {/* ── STATS TAB ── */}
+      {tab==="stats"&&(
+        <StatsView parks={parks} visits={visits} checked={checked} isJa={isJa} themeColors={T} tx={tx} onParkClick={(park)=>{setTab("map");setSelectedPark(park);}}/>
+      )}
+
+      {/* ── LIST TAB ── */}
+      {tab==="list"&&(
+        <div style={{flex:1,display:"flex",flexDirection:"column"}}>
+          <div style={{padding:"14px 16px 0",maxWidth:700,margin:"0 auto",width:"100%",boxSizing:"border-box",display:"flex",gap:8}}>
+            <input type="text" placeholder={tx.search} value={search} onChange={e=>setSearch(e.target.value)}
+              style={{flex:1,padding:"10px 14px",background:T.inputBg,border:`1px solid ${T.inputBorder}`,borderRadius:8,color:T.textPrimary,fontSize:13,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+            <div style={{position:"relative"}}>
+              <button onClick={()=>setShowSortMenu(s=>!s)} style={{height:"100%",padding:"0 14px",background:T.inputBg,border:`1px solid ${T.inputBorder}`,borderRadius:8,color:T.mutedText,fontSize:13,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
+                ⇅ {tx.sortBy}
+              </button>
+              {showSortMenu&&(
+                <div style={{position:"absolute",top:"110%",right:0,background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:8,padding:6,zIndex:10,minWidth:150,boxShadow:"0 4px 16px rgba(0,0,0,.4)"}}>
+                  {[["az",tx.sortAZ],["dateDesc",tx.sortDateDesc],["dateAsc",tx.sortDateAsc],["unvisited",tx.sortUnvisited]].map(([key,label])=>(
+                    <div key={key} onClick={()=>{setSortMode(key);setShowSortMenu(false);}} style={{
+                      padding:"8px 10px",borderRadius:6,fontSize:12,cursor:"pointer",
+                      background:sortMode===key?T.btnBgActive:"transparent",
+                      color:sortMode===key?T.accentText:T.textPrimary,
+                    }}>{sortMode===key?"✓ ":""}{label}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div style={{padding:"10px 16px",maxWidth:700,margin:"0 auto",width:"100%",boxSizing:"border-box",display:"flex",gap:6,flexWrap:"wrap"}}>
+            {[{key:"all",label:tx.all},...regions].map(r=>{
+              const cnt=r.key==="all"?totalChecked:regionCount(r.key);
+              const total=r.key==="all"?parks.length:parks.filter(p=>p.region===r.key).length;
+              return <button key={r.key} onClick={()=>setActiveRegion(r.key)} style={S.chip(activeRegion===r.key)}>{r.label} <span style={{opacity:.6}}>({cnt}/{total})</span></button>;
+            })}
+          </div>
+          <div style={{maxWidth:700,margin:"0 auto",padding:"0 16px 80px",width:"100%",boxSizing:"border-box"}}>
+            {filteredParks.length===0&&<div style={{textAlign:"center",padding:40,color:T.mutedText,fontSize:13}}>{tx.notFound}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:1}}>
+              {filteredParks.map(park=>{
+                const isCheckedP=checked[park.id], visitCount=visits[park.id]?.length??0;
+                const latestVisit=visitCount>0?[...(visits[park.id])].sort((a,b)=>b.date.localeCompare(a.date))[0]:null;
+                const latestDate=latestVisit?.date;
+                return (
+                  <div key={park.id} ref={el=>parkRefs.current[park.id]=el}
+                    style={{background:isCheckedP?T.cardBgAlt:T.cardBg,borderLeft:`3px solid ${isCheckedP?T.cardBorderActive:T.cardBorder}`,borderRadius:2,opacity:isCheckedP?.85:1}}>
+                    <div onClick={()=>toggleCheck(park)} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",cursor:"pointer"}}>
+                      <div style={{width:19,height:19,flexShrink:0,border:`1.5px solid ${isCheckedP?T.cardBorderActive:T.cardBorder}`,borderRadius:4,background:isCheckedP?T.btnBgActive:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,color:T.accentText}}>
+                        {isCheckedP&&"✓"}
+                      </div>
+                      <span style={{fontSize:17,flexShrink:0}}>{park.emoji}</span>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontSize:14,color:isCheckedP?T.accentText:T.textPrimary,textDecoration:isCheckedP?"line-through":"none",textDecorationColor:T.mutedText}}>{isJa?park.ja:park.name}</div>
+                        <div style={{fontSize:10,color:T.mutedText,marginTop:1}}>{isJa?park.name:park.ja} · {isJa?park.stateJa:park.state}</div>
+                        {latestDate&&<div style={{fontSize:10,color:T.mutedText,marginTop:3,display:"flex",alignItems:"center",gap:4}}>
+                          <span>📅 {formatDate(latestDate,isJa)}</span>
+                          {visitCount>1&&<span style={{color:T.accentText,background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:8,padding:"0 5px"}}>×{visitCount}</span>}
+                        </div>}
+                        {latestVisit?.note&&<div style={{fontSize:10,color:T.textSecondary,marginTop:3,fontStyle:"italic",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>💬 {latestVisit.note}</div>}
+                      </div>
+                      {activeRegion==="all"&&<span style={{fontSize:9,color:T.mutedText,background:T.inputBg,border:`1px solid ${T.cardBorder}`,borderRadius:10,padding:"2px 7px",flexShrink:0,whiteSpace:"nowrap"}}>{isJa?park.regionJa:park.region}</span>}
+                    </div>
+                    <div style={{display:"flex",borderTop:`1px solid ${T.cardBorder}`}}>
+                      <a href={npsUrl(park)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{flex:1,padding:"7px 0",textAlign:"center",fontSize:10,color:T.accentText,textDecoration:"none",borderRight:`1px solid ${T.cardBorder}`}}>🏛 {tx.npsLink}</a>
+                      <a href={gmapUrl(park)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{flex:1,padding:"7px 0",textAlign:"center",fontSize:10,color:T.accentText,textDecoration:"none",borderRight:`1px solid ${T.cardBorder}`}}>📍 {tx.gmapLink}</a>
+                      <button onClick={e=>{e.stopPropagation();setDateModalPark(park);}} style={S.rowBtn(visitCount>0?T.accentText:T.mutedText)}>📅 {visitCount>0?tx.visits(visitCount):(isJa?"訪問日":"Dates")}</button>
+                      <button onClick={e=>{e.stopPropagation();setTab("map");setSelectedPark(park);}} style={S.rowBtn(T.mutedText)}>🗺 {tx.mapTab}</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating badge */}
+      {totalChecked>0&&(
+        <div style={{position:"fixed",bottom:16,right:12,background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:50,padding:"6px 12px",fontSize:11,color:T.accentText,boxShadow:"0 4px 16px rgba(0,0,0,.4)",pointerEvents:"none",opacity:0.9}}>
+          {tx.badge(totalChecked)}
+        </div>
+      )}
+
+      {/* Modals */}
+      {dateModalPark&&<DateModal park={dateModalPark} dates={visits[dateModalPark.id]??[]} isJa={isJa} tx={tx} onClose={()=>setDateModalPark(null)} onAdd={(date,note)=>addVisit(dateModalPark.id,date,note)} onDelete={date=>removeVisit(dateModalPark.id,date)} onUpdateNote={(date,note)=>updateVisitNote(dateModalPark.id,date,note)}/>}
+      {showProfiles&&<ProfileModal profiles={store.profiles} activeId={store.activeId} onSwitch={switchProfile} onCreate={createProfile} onRename={renameProfile} onDelete={deleteProfile} onClose={()=>setShowProfiles(false)} tx={tx} isJa={isJa} onExport={handleExport} onImport={handleImport}/>}
+      {showShareCard&&<ShareCardModal profile={activeProfile} visits={visits} checked={checked} isJa={isJa} tx={tx} earnedBadgeIds={earnedBadges} earnedTagIds={earnedTagBadges} questProgress={questProgress} onClose={()=>setShowShareCard(false)}/>}
+      {showBadges&&<BadgeModal earnedIds={earnedBadges} earnedTagIds={earnedTagBadges} questProgress={questProgress} checked={checked} isJa={isJa} tx={tx} themeColors={T} onParkClick={(park)=>{setTab("map");setSelectedPark(park);setShowBadges(false);}} onClose={()=>setShowBadges(false)}/>}
+      {showThemePicker&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2000}} onClick={()=>setShowThemePicker(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{background:T.cardBgAlt,border:`1px solid ${T.headerBorder}`,borderRadius:"16px 16px 0 0",width:"100%",maxWidth:500,padding:"20px 20px 32px"}}>
+            <div style={{width:36,height:4,background:T.cardBorder,borderRadius:2,margin:"0 auto 16px"}}/>
+            <div style={{fontSize:16,color:T.accentText,marginBottom:16,textAlign:"center"}}>{isJa?"サイトのテーマ":"Site Theme"}</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {Object.entries(THEMES).map(([key,theme])=>(
+                <button key={key} onClick={()=>{setSiteTheme(key);setShowThemePicker(false);}} style={{
+                  display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderRadius:10,cursor:"pointer",fontFamily:"inherit",textAlign:"left",
+                  background:siteTheme===key?T.btnBgActive:T.cardBg,
+                  border:`1px solid ${siteTheme===key?T.btnBorderActive:T.cardBorder}`,
+                }}>
+                  <span style={{fontSize:22}}>{theme.label}</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:14,color:siteTheme===key?T.accentText:T.textPrimary}}>{isJa?theme.nameJa:theme.name}</div>
+                  </div>
+                  {siteTheme===key&&<span style={{color:T.accentText,fontSize:16}}>✓</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {confirm&&<ConfirmDialog message={confirm.message} onConfirm={confirm.onConfirm} onCancel={()=>setConfirm(null)} tx={tx}/>}
+    </div>
+  );
+}
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+    window.__bootOk = true;
+    if (window.__bootTimer) clearTimeout(window.__bootTimer);
+  </script>
+</body>
