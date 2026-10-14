@@ -39,7 +39,7 @@
   </style>
 </head>
 <body>
-  <div id="offline-banner">📡 Offline mode — your data is safe and syncs when you\'re back online</div>
+  <div id="offline-banner">📡 Offline mode — your data is safe and syncs when you're back online</div>
   <div id="root">
     <div id="boot-status" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a1410;color:#a8d4a8;font-family:Georgia,serif;padding:24px;text-align:center;">
       <div>
@@ -178,69 +178,69 @@ const LANG_KEY    = "np_lang_v1";
 const THEME_KEY   = "np_theme_v1";
 
 const parks = [
-  { id:1,  name:"Acadia",                      ja:"アケイディア",                     state:"Maine",                      stateJa:"メイン州",                    region:"Northeast",       regionJa:"北東部",      emoji:"🏔️", lat:44.35,  lng:-68.21  },
-  { id:2,  name:"American Samoa",               ja:"アメリカン・サモア",               state:"American Samoa",             stateJa:"アメリカ領サモア",            region:"Pacific",         regionJa:"北米・太平洋", emoji:"🏄", lat:-14.25, lng:-170.68 },
-  { id:3,  name:"Arches",                       ja:"アーチーズ",                       state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🌅", lat:38.68,  lng:-109.57 },
-  { id:4,  name:"Badlands",                     ja:"バッドランズ",                     state:"South Dakota",               stateJa:"サウスダコタ州",              region:"Midwest",         regionJa:"中西部",      emoji:"🗿", lat:43.85,  lng:-102.34 },
-  { id:5,  name:"Big Bend",                     ja:"ビッグ・ベンド",                   state:"Texas",                      stateJa:"テキサス州",                  region:"Southwest",       regionJa:"南西部",      emoji:"🌵", lat:29.25,  lng:-103.25 },
-  { id:6,  name:"Biscayne",                     ja:"ビスケーン",                       state:"Florida",                    stateJa:"フロリダ州",                  region:"Southeast",       regionJa:"南東部",      emoji:"🐠", lat:25.48,  lng:-80.43  },
-  { id:7,  name:"Black Canyon of the Gunnison", ja:"ブラック・キャニオン",             state:"Colorado",                   stateJa:"コロラド州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🖤", lat:38.57,  lng:-107.72 },
-  { id:8,  name:"Bryce Canyon",                 ja:"ブライスキャニオン",               state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🔴", lat:37.59,  lng:-112.18 },
-  { id:9,  name:"Canyonlands",                  ja:"キャニオンランズ",                 state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🌄", lat:38.20,  lng:-109.93 },
-  { id:10, name:"Capitol Reef",                 ja:"キャピトル・リーフ",               state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🪨", lat:38.09,  lng:-111.15 },
-  { id:11, name:"Carlsbad Caverns",             ja:"カールスバッド・キャバーンズ",     state:"New Mexico",                 stateJa:"ニューメキシコ州",            region:"Southwest",       regionJa:"南西部",      emoji:"🦇", lat:32.14,  lng:-104.55 },
-  { id:12, name:"Channel Islands",              ja:"チャンネル・アイランズ",           state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🦭", lat:34.01,  lng:-119.42 },
-  { id:13, name:"Congaree",                     ja:"コンガリー",                       state:"South Carolina",             stateJa:"サウスカロライナ州",          region:"Southeast",       regionJa:"南東部",      emoji:"🌳", lat:33.78,  lng:-80.78  },
-  { id:14, name:"Crater Lake",                  ja:"クレーター・レイク",               state:"Oregon",                     stateJa:"オレゴン州",                  region:"West Coast",      regionJa:"西海岸",      emoji:"🔵", lat:42.94,  lng:-122.10 },
-  { id:15, name:"Cuyahoga Valley",              ja:"クヤホガ・バレー",                 state:"Ohio",                       stateJa:"オハイオ州",                  region:"Midwest",         regionJa:"中西部",      emoji:"🌊", lat:41.24,  lng:-81.55  },
-  { id:16, name:"Death Valley",                 ja:"デス・バレー",                     state:"California / Nevada",        stateJa:"カリフォルニア/ネバダ州",     region:"West Coast",      regionJa:"西海岸",      emoji:"☀️", lat:36.24,  lng:-116.82 },
-  { id:17, name:"Denali",                       ja:"デナリ",                           state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🐻", lat:63.33,  lng:-150.50 },
-  { id:18, name:"Dry Tortugas",                 ja:"ドライ・トートゥガス",             state:"Florida",                    stateJa:"フロリダ州",                  region:"Southeast",       regionJa:"南東部",      emoji:"🏝️", lat:24.63,  lng:-82.87  },
-  { id:19, name:"Everglades",                   ja:"エバーグレーズ",                   state:"Florida",                    stateJa:"フロリダ州",                  region:"Southeast",       regionJa:"南東部",      emoji:"🐊", lat:25.39,  lng:-80.93  },
-  { id:20, name:"Gates of the Arctic",          ja:"ゲーツ・オブ・ジ・アークティック", state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌌", lat:67.78,  lng:-153.30 },
-  { id:21, name:"Gateway Arch",                 ja:"ゲートウェイ・アーチ",             state:"Missouri",                   stateJa:"ミズーリ州",                  region:"Midwest",         regionJa:"中西部",      emoji:"🏛️", lat:38.62,  lng:-90.18  },
-  { id:22, name:"Glacier",                      ja:"グレイシャー",                     state:"Montana",                    stateJa:"モンタナ州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🧊", lat:48.69,  lng:-113.72 },
-  { id:23, name:"Glacier Bay",                  ja:"グレイシャー・ベイ",               state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🧊", lat:58.50,  lng:-137.00 },
-  { id:24, name:"Grand Canyon",                 ja:"グランドキャニオン",               state:"Arizona",                    stateJa:"アリゾナ州",                  region:"Southwest",       regionJa:"南西部",      emoji:"🏜️", lat:36.10,  lng:-112.11 },
-  { id:25, name:"Grand Teton",                  ja:"グランド・ティートン",             state:"Wyoming",                    stateJa:"ワイオミング州",              region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🏔️", lat:43.73,  lng:-110.80 },
-  { id:26, name:"Great Basin",                  ja:"グレート・ベイスン",               state:"Nevada",                     stateJa:"ネバダ州",                    region:"Southwest",       regionJa:"南西部",      emoji:"⭐", lat:38.98,  lng:-114.30 },
-  { id:27, name:"Great Sand Dunes",             ja:"グレート・サンド・デューンズ",     state:"Colorado",                   stateJa:"コロラド州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🏜️", lat:37.73,  lng:-105.51 },
-  { id:28, name:"Great Smoky Mountains",        ja:"グレート・スモーキー山地",         state:"Tennessee / North Carolina", stateJa:"テネシー/ノースカロライナ州", region:"Southeast",       regionJa:"南東部",      emoji:"🌫️", lat:35.61,  lng:-83.50  },
-  { id:29, name:"Guadalupe Mountains",          ja:"グアダルーペ山地",                 state:"Texas",                      stateJa:"テキサス州",                  region:"Southwest",       regionJa:"南西部",      emoji:"⛰️", lat:31.92,  lng:-104.87 },
-  { id:30, name:"Haleakalā",                    ja:"ハレアカラ",                       state:"Hawaii",                     stateJa:"ハワイ州",                    region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌺", lat:20.72,  lng:-156.15 },
-  { id:31, name:"Hawaiʻi Volcanoes",            ja:"ハワイ火山",                       state:"Hawaii",                     stateJa:"ハワイ州",                    region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌋", lat:19.43,  lng:-155.26 },
-  { id:32, name:"Hot Springs",                  ja:"ホット・スプリングス",             state:"Arkansas",                   stateJa:"アーカンソー州",              region:"Southeast",       regionJa:"南東部",      emoji:"♨️", lat:34.52,  lng:-93.05  },
-  { id:33, name:"Indiana Dunes",                ja:"インディアナ・デューンズ",         state:"Indiana",                    stateJa:"インディアナ州",              region:"Midwest",         regionJa:"中西部",      emoji:"🏖️", lat:41.65,  lng:-87.05  },
-  { id:34, name:"Isle Royale",                  ja:"アイル・ロワイヤル",               state:"Michigan",                   stateJa:"ミシガン州",                  region:"Midwest",         regionJa:"中西部",      emoji:"🐺", lat:48.00,  lng:-88.83  },
-  { id:35, name:"Joshua Tree",                  ja:"ジョシュアツリー",                 state:"California",                 stateJa:"カリフォルニア州",            region:"Southwest",       regionJa:"南西部",      emoji:"🌵", lat:33.87,  lng:-115.90 },
-  { id:36, name:"Katmai",                       ja:"カトマイ",                         state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🐟", lat:58.50,  lng:-154.00 },
-  { id:37, name:"Kenai Fjords",                 ja:"ケナイ・フィヨルド",               state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌊", lat:59.92,  lng:-150.17 },
-  { id:38, name:"Kings Canyon",                 ja:"キングス・キャニオン",             state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"👑", lat:36.88,  lng:-118.55 },
-  { id:39, name:"Kobuk Valley",                 ja:"コブク・バレー",                   state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🏜️", lat:67.33,  lng:-159.12 },
-  { id:40, name:"Lake Clark",                   ja:"レイク・クラーク",                 state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🐋", lat:60.97,  lng:-153.42 },
-  { id:41, name:"Lassen Volcanic",              ja:"ラッセン・ボルカニック",           state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🌋", lat:40.49,  lng:-121.51 },
-  { id:42, name:"Mammoth Cave",                 ja:"マンモス・ケーブ",                 state:"Kentucky",                   stateJa:"ケンタッキー州",              region:"Southeast",       regionJa:"南東部",      emoji:"🕳️", lat:37.18,  lng:-86.10  },
-  { id:43, name:"Mesa Verde",                   ja:"メサ・ベルデ",                     state:"Colorado",                   stateJa:"コロラド州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🏺", lat:37.18,  lng:-108.49 },
-  { id:44, name:"Mount Rainier",                ja:"マウント・レーニア",               state:"Washington",                 stateJa:"ワシントン州",                region:"West Coast",      regionJa:"西海岸",      emoji:"🌋", lat:46.85,  lng:-121.75 },
-  { id:45, name:"New River Gorge",              ja:"ニュー・リバー・ゴージ",           state:"West Virginia",              stateJa:"ウェストバージニア州",        region:"Northeast",       regionJa:"北東部",      emoji:"🌉", lat:37.87,  lng:-80.99  },
-  { id:46, name:"North Cascades",               ja:"ノース・カスケーズ",               state:"Washington",                 stateJa:"ワシントン州",                region:"West Coast",      regionJa:"西海岸",      emoji:"🏔️", lat:48.70,  lng:-121.20 },
-  { id:47, name:"Olympic",                      ja:"オリンピック",                     state:"Washington",                 stateJa:"ワシントン州",                region:"West Coast",      regionJa:"西海岸",      emoji:"🌊", lat:47.97,  lng:-123.50 },
-  { id:48, name:"Petrified Forest",             ja:"ペトリファイド・フォレスト",       state:"Arizona",                    stateJa:"アリゾナ州",                  region:"Southwest",       regionJa:"南西部",      emoji:"🪵", lat:35.07,  lng:-109.78 },
-  { id:49, name:"Pinnacles",                    ja:"ピナクルズ",                       state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🦅", lat:36.49,  lng:-121.20 },
-  { id:50, name:"Redwood",                      ja:"レッドウッド",                     state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🌲", lat:41.30,  lng:-124.00 },
-  { id:51, name:"Rocky Mountain",               ja:"ロッキー山地",                     state:"Colorado",                   stateJa:"コロラド州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🦌", lat:40.40,  lng:-105.58 },
-  { id:52, name:"Saguaro",                      ja:"サワロ",                           state:"Arizona",                    stateJa:"アリゾナ州",                  region:"Southwest",       regionJa:"南西部",      emoji:"🌵", lat:32.25,  lng:-110.50 },
-  { id:53, name:"Sequoia",                      ja:"セコイア",                         state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🌳", lat:36.43,  lng:-118.68 },
-  { id:54, name:"Shenandoah",                   ja:"シェナンドー",                     state:"Virginia",                   stateJa:"バージニア州",                region:"Northeast",       regionJa:"北東部",      emoji:"🌿", lat:38.53,  lng:-78.35  },
-  { id:55, name:"Theodore Roosevelt",           ja:"セオドア・ルーズベルト",           state:"North Dakota",               stateJa:"ノースダコタ州",              region:"Midwest",         regionJa:"中西部",      emoji:"🦬", lat:46.97,  lng:-103.45 },
-  { id:56, name:"Virgin Islands",               ja:"バージン諸島",                     state:"U.S. Virgin Islands",        stateJa:"バージン諸島",                region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌴", lat:18.34,  lng:-64.73  },
-  { id:57, name:"Voyageurs",                    ja:"ボイジャーズ",                     state:"Minnesota",                  stateJa:"ミネソタ州",                  region:"Midwest",         regionJa:"中西部",      emoji:"🛶", lat:48.49,  lng:-92.83  },
-  { id:58, name:"White Sands",                  ja:"ホワイト・サンズ",                 state:"New Mexico",                 stateJa:"ニューメキシコ州",            region:"Southwest",       regionJa:"南西部",      emoji:"🏳️", lat:32.77,  lng:-106.17 },
-  { id:59, name:"Wind Cave",                    ja:"ウィンド・ケーブ",                 state:"South Dakota",               stateJa:"サウスダコタ州",              region:"Midwest",         regionJa:"中西部",      emoji:"💨", lat:43.57,  lng:-103.48 },
-  { id:60, name:"Wrangell–St. Elias",           ja:"ランゲル・セント・イライアス",     state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🏔️", lat:61.70,  lng:-142.99 },
-  { id:61, name:"Yellowstone",                  ja:"イエローストーン",                 state:"Wyoming",                    stateJa:"ワイオミング州",              region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🌋", lat:44.60,  lng:-110.50 },
-  { id:62, name:"Yosemite",                     ja:"ヨセミテ",                         state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🌲", lat:37.87,  lng:-119.54 },
-  { id:63, name:"Zion",                         ja:"ザイオン",                         state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🏛️", lat:37.29,  lng:-113.05 },
+  { id:1,  name:"Acadia",                      ja:"アケイディア",                     state:"Maine",                      stateJa:"メイン州",                    region:"Northeast",       regionJa:"北東部",      emoji:"🏔️", lat:44.35,  lng:-68.21, nps:"acad" },
+  { id:2,  name:"American Samoa",               ja:"アメリカン・サモア",               state:"American Samoa",             stateJa:"アメリカ領サモア",            region:"Pacific",         regionJa:"北米・太平洋", emoji:"🏄", lat:-14.25, lng:-170.68, nps:"npsa" },
+  { id:3,  name:"Arches",                       ja:"アーチーズ",                       state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🌅", lat:38.68,  lng:-109.57, nps:"arch" },
+  { id:4,  name:"Badlands",                     ja:"バッドランズ",                     state:"South Dakota",               stateJa:"サウスダコタ州",              region:"Midwest",         regionJa:"中西部",      emoji:"🗿", lat:43.85,  lng:-102.34, nps:"badl" },
+  { id:5,  name:"Big Bend",                     ja:"ビッグ・ベンド",                   state:"Texas",                      stateJa:"テキサス州",                  region:"Southwest",       regionJa:"南西部",      emoji:"🌵", lat:29.25,  lng:-103.25, nps:"bibe" },
+  { id:6,  name:"Biscayne",                     ja:"ビスケーン",                       state:"Florida",                    stateJa:"フロリダ州",                  region:"Southeast",       regionJa:"南東部",      emoji:"🐠", lat:25.48,  lng:-80.43, nps:"bisc" },
+  { id:7,  name:"Black Canyon of the Gunnison", ja:"ブラック・キャニオン",             state:"Colorado",                   stateJa:"コロラド州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🖤", lat:38.57,  lng:-107.72, nps:"blca" },
+  { id:8,  name:"Bryce Canyon",                 ja:"ブライスキャニオン",               state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🔴", lat:37.59,  lng:-112.18, nps:"brca" },
+  { id:9,  name:"Canyonlands",                  ja:"キャニオンランズ",                 state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🌄", lat:38.20,  lng:-109.93, nps:"cany" },
+  { id:10, name:"Capitol Reef",                 ja:"キャピトル・リーフ",               state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🪨", lat:38.09,  lng:-111.15, nps:"care" },
+  { id:11, name:"Carlsbad Caverns",             ja:"カールスバッド・キャバーンズ",     state:"New Mexico",                 stateJa:"ニューメキシコ州",            region:"Southwest",       regionJa:"南西部",      emoji:"🦇", lat:32.14,  lng:-104.55, nps:"cave" },
+  { id:12, name:"Channel Islands",              ja:"チャンネル・アイランズ",           state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🦭", lat:34.01,  lng:-119.42, nps:"chis" },
+  { id:13, name:"Congaree",                     ja:"コンガリー",                       state:"South Carolina",             stateJa:"サウスカロライナ州",          region:"Southeast",       regionJa:"南東部",      emoji:"🌳", lat:33.78,  lng:-80.78, nps:"cong" },
+  { id:14, name:"Crater Lake",                  ja:"クレーター・レイク",               state:"Oregon",                     stateJa:"オレゴン州",                  region:"West Coast",      regionJa:"西海岸",      emoji:"🔵", lat:42.94,  lng:-122.10, nps:"crla" },
+  { id:15, name:"Cuyahoga Valley",              ja:"クヤホガ・バレー",                 state:"Ohio",                       stateJa:"オハイオ州",                  region:"Midwest",         regionJa:"中西部",      emoji:"🌊", lat:41.24,  lng:-81.55, nps:"cuva" },
+  { id:16, name:"Death Valley",                 ja:"デス・バレー",                     state:"California / Nevada",        stateJa:"カリフォルニア/ネバダ州",     region:"West Coast",      regionJa:"西海岸",      emoji:"☀️", lat:36.24,  lng:-116.82, nps:"deva" },
+  { id:17, name:"Denali",                       ja:"デナリ",                           state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🐻", lat:63.33,  lng:-150.50, nps:"dena" },
+  { id:18, name:"Dry Tortugas",                 ja:"ドライ・トートゥガス",             state:"Florida",                    stateJa:"フロリダ州",                  region:"Southeast",       regionJa:"南東部",      emoji:"🏝️", lat:24.63,  lng:-82.87, nps:"drto" },
+  { id:19, name:"Everglades",                   ja:"エバーグレーズ",                   state:"Florida",                    stateJa:"フロリダ州",                  region:"Southeast",       regionJa:"南東部",      emoji:"🐊", lat:25.39,  lng:-80.93, nps:"ever" },
+  { id:20, name:"Gates of the Arctic",          ja:"ゲーツ・オブ・ジ・アークティック", state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌌", lat:67.78,  lng:-153.30, nps:"gaar" },
+  { id:21, name:"Gateway Arch",                 ja:"ゲートウェイ・アーチ",             state:"Missouri",                   stateJa:"ミズーリ州",                  region:"Midwest",         regionJa:"中西部",      emoji:"🏛️", lat:38.62,  lng:-90.18, nps:"jeff" },
+  { id:22, name:"Glacier",                      ja:"グレイシャー",                     state:"Montana",                    stateJa:"モンタナ州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🧊", lat:48.69,  lng:-113.72, nps:"glac" },
+  { id:23, name:"Glacier Bay",                  ja:"グレイシャー・ベイ",               state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🧊", lat:58.50,  lng:-137.00, nps:"glba" },
+  { id:24, name:"Grand Canyon",                 ja:"グランドキャニオン",               state:"Arizona",                    stateJa:"アリゾナ州",                  region:"Southwest",       regionJa:"南西部",      emoji:"🏜️", lat:36.10,  lng:-112.11, nps:"grca" },
+  { id:25, name:"Grand Teton",                  ja:"グランド・ティートン",             state:"Wyoming",                    stateJa:"ワイオミング州",              region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🏔️", lat:43.73,  lng:-110.80, nps:"grte" },
+  { id:26, name:"Great Basin",                  ja:"グレート・ベイスン",               state:"Nevada",                     stateJa:"ネバダ州",                    region:"Southwest",       regionJa:"南西部",      emoji:"⭐", lat:38.98,  lng:-114.30, nps:"grba" },
+  { id:27, name:"Great Sand Dunes",             ja:"グレート・サンド・デューンズ",     state:"Colorado",                   stateJa:"コロラド州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🏜️", lat:37.73,  lng:-105.51, nps:"grsa" },
+  { id:28, name:"Great Smoky Mountains",        ja:"グレート・スモーキー山地",         state:"Tennessee / North Carolina", stateJa:"テネシー/ノースカロライナ州", region:"Southeast",       regionJa:"南東部",      emoji:"🌫️", lat:35.61,  lng:-83.50, nps:"grsm" },
+  { id:29, name:"Guadalupe Mountains",          ja:"グアダルーペ山地",                 state:"Texas",                      stateJa:"テキサス州",                  region:"Southwest",       regionJa:"南西部",      emoji:"⛰️", lat:31.92,  lng:-104.87, nps:"gumo" },
+  { id:30, name:"Haleakalā",                    ja:"ハレアカラ",                       state:"Hawaii",                     stateJa:"ハワイ州",                    region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌺", lat:20.72,  lng:-156.15, nps:"hale" },
+  { id:31, name:"Hawaiʻi Volcanoes",            ja:"ハワイ火山",                       state:"Hawaii",                     stateJa:"ハワイ州",                    region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌋", lat:19.43,  lng:-155.26, nps:"havo" },
+  { id:32, name:"Hot Springs",                  ja:"ホット・スプリングス",             state:"Arkansas",                   stateJa:"アーカンソー州",              region:"Southeast",       regionJa:"南東部",      emoji:"♨️", lat:34.52,  lng:-93.05, nps:"hosp" },
+  { id:33, name:"Indiana Dunes",                ja:"インディアナ・デューンズ",         state:"Indiana",                    stateJa:"インディアナ州",              region:"Midwest",         regionJa:"中西部",      emoji:"🏖️", lat:41.65,  lng:-87.05, nps:"indu" },
+  { id:34, name:"Isle Royale",                  ja:"アイル・ロワイヤル",               state:"Michigan",                   stateJa:"ミシガン州",                  region:"Midwest",         regionJa:"中西部",      emoji:"🐺", lat:48.00,  lng:-88.83, nps:"isro" },
+  { id:35, name:"Joshua Tree",                  ja:"ジョシュアツリー",                 state:"California",                 stateJa:"カリフォルニア州",            region:"Southwest",       regionJa:"南西部",      emoji:"🌵", lat:33.87,  lng:-115.90, nps:"jotr" },
+  { id:36, name:"Katmai",                       ja:"カトマイ",                         state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🐟", lat:58.50,  lng:-154.00, nps:"katm" },
+  { id:37, name:"Kenai Fjords",                 ja:"ケナイ・フィヨルド",               state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌊", lat:59.92,  lng:-150.17, nps:"kefj" },
+  { id:38, name:"Kings Canyon",                 ja:"キングス・キャニオン",             state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"👑", lat:36.88,  lng:-118.55, nps:"seki" },
+  { id:39, name:"Kobuk Valley",                 ja:"コブク・バレー",                   state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🏜️", lat:67.33,  lng:-159.12, nps:"kova" },
+  { id:40, name:"Lake Clark",                   ja:"レイク・クラーク",                 state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🐋", lat:60.97,  lng:-153.42, nps:"lacl" },
+  { id:41, name:"Lassen Volcanic",              ja:"ラッセン・ボルカニック",           state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🌋", lat:40.49,  lng:-121.51, nps:"lavo" },
+  { id:42, name:"Mammoth Cave",                 ja:"マンモス・ケーブ",                 state:"Kentucky",                   stateJa:"ケンタッキー州",              region:"Southeast",       regionJa:"南東部",      emoji:"🕳️", lat:37.18,  lng:-86.10, nps:"maca" },
+  { id:43, name:"Mesa Verde",                   ja:"メサ・ベルデ",                     state:"Colorado",                   stateJa:"コロラド州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🏺", lat:37.18,  lng:-108.49, nps:"meve" },
+  { id:44, name:"Mount Rainier",                ja:"マウント・レーニア",               state:"Washington",                 stateJa:"ワシントン州",                region:"West Coast",      regionJa:"西海岸",      emoji:"🌋", lat:46.85,  lng:-121.75, nps:"mora" },
+  { id:45, name:"New River Gorge",              ja:"ニュー・リバー・ゴージ",           state:"West Virginia",              stateJa:"ウェストバージニア州",        region:"Northeast",       regionJa:"北東部",      emoji:"🌉", lat:37.87,  lng:-80.99, nps:"neri" },
+  { id:46, name:"North Cascades",               ja:"ノース・カスケーズ",               state:"Washington",                 stateJa:"ワシントン州",                region:"West Coast",      regionJa:"西海岸",      emoji:"🏔️", lat:48.70,  lng:-121.20, nps:"noca" },
+  { id:47, name:"Olympic",                      ja:"オリンピック",                     state:"Washington",                 stateJa:"ワシントン州",                region:"West Coast",      regionJa:"西海岸",      emoji:"🌊", lat:47.97,  lng:-123.50, nps:"olym" },
+  { id:48, name:"Petrified Forest",             ja:"ペトリファイド・フォレスト",       state:"Arizona",                    stateJa:"アリゾナ州",                  region:"Southwest",       regionJa:"南西部",      emoji:"🪵", lat:35.07,  lng:-109.78, nps:"pefo" },
+  { id:49, name:"Pinnacles",                    ja:"ピナクルズ",                       state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🦅", lat:36.49,  lng:-121.20, nps:"pinn" },
+  { id:50, name:"Redwood",                      ja:"レッドウッド",                     state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🌲", lat:41.30,  lng:-124.00, nps:"redw" },
+  { id:51, name:"Rocky Mountain",               ja:"ロッキー山地",                     state:"Colorado",                   stateJa:"コロラド州",                  region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🦌", lat:40.40,  lng:-105.58, nps:"romo" },
+  { id:52, name:"Saguaro",                      ja:"サワロ",                           state:"Arizona",                    stateJa:"アリゾナ州",                  region:"Southwest",       regionJa:"南西部",      emoji:"🌵", lat:32.25,  lng:-110.50, nps:"sagu" },
+  { id:53, name:"Sequoia",                      ja:"セコイア",                         state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🌳", lat:36.43,  lng:-118.68, nps:"seki" },
+  { id:54, name:"Shenandoah",                   ja:"シェナンドー",                     state:"Virginia",                   stateJa:"バージニア州",                region:"Northeast",       regionJa:"北東部",      emoji:"🌿", lat:38.53,  lng:-78.35, nps:"shen" },
+  { id:55, name:"Theodore Roosevelt",           ja:"セオドア・ルーズベルト",           state:"North Dakota",               stateJa:"ノースダコタ州",              region:"Midwest",         regionJa:"中西部",      emoji:"🦬", lat:46.97,  lng:-103.45, nps:"thro" },
+  { id:56, name:"Virgin Islands",               ja:"バージン諸島",                     state:"U.S. Virgin Islands",        stateJa:"バージン諸島",                region:"Pacific",         regionJa:"北米・太平洋", emoji:"🌴", lat:18.34,  lng:-64.73, nps:"viis" },
+  { id:57, name:"Voyageurs",                    ja:"ボイジャーズ",                     state:"Minnesota",                  stateJa:"ミネソタ州",                  region:"Midwest",         regionJa:"中西部",      emoji:"🛶", lat:48.49,  lng:-92.83, nps:"voya" },
+  { id:58, name:"White Sands",                  ja:"ホワイト・サンズ",                 state:"New Mexico",                 stateJa:"ニューメキシコ州",            region:"Southwest",       regionJa:"南西部",      emoji:"🏳️", lat:32.77,  lng:-106.17, nps:"whsa" },
+  { id:59, name:"Wind Cave",                    ja:"ウィンド・ケーブ",                 state:"South Dakota",               stateJa:"サウスダコタ州",              region:"Midwest",         regionJa:"中西部",      emoji:"💨", lat:43.57,  lng:-103.48, nps:"wica" },
+  { id:60, name:"Wrangell–St. Elias",           ja:"ランゲル・セント・イライアス",     state:"Alaska",                     stateJa:"アラスカ州",                  region:"Pacific",         regionJa:"北米・太平洋", emoji:"🏔️", lat:61.70,  lng:-142.99, nps:"wrst" },
+  { id:61, name:"Yellowstone",                  ja:"イエローストーン",                 state:"Wyoming",                    stateJa:"ワイオミング州",              region:"Rocky Mountains", regionJa:"ロッキー山脈", emoji:"🌋", lat:44.60,  lng:-110.50, nps:"yell" },
+  { id:62, name:"Yosemite",                     ja:"ヨセミテ",                         state:"California",                 stateJa:"カリフォルニア州",            region:"West Coast",      regionJa:"西海岸",      emoji:"🌲", lat:37.87,  lng:-119.54, nps:"yose" },
+  { id:63, name:"Zion",                         ja:"ザイオン",                         state:"Utah",                       stateJa:"ユタ州",                      region:"Southwest",       regionJa:"南西部",      emoji:"🏛️", lat:37.29,  lng:-113.05, nps:"zion" },
 ];
 
 const REGION_ORDER = ["Northeast","Southeast","Midwest","Southwest","Rocky Mountains","West Coast","Pacific"];
@@ -550,9 +550,14 @@ function formatDate(iso, isJa) {
   if (isJa) return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
   return d.toLocaleDateString("en-US", { year:"numeric", month:"short", day:"numeric" });
 }
-function today() { return new Date().toISOString().slice(0,10); }
+// Local calendar date (YYYY-MM-DD). toISOString() would give the UTC date,
+// which is "yesterday" for e.g. Japan before 9am.
+function today() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
 function uid()   { return Math.random().toString(36).slice(2,9); }
-const npsUrl  = (p) => `https://www.nps.gov/${p.nps||p.name.toLowerCase().replace(/[\s–]/g,"")}/index.htm`;
+const npsUrl  = (p) => `https://www.nps.gov/${p.nps}/index.htm`;
 const gmapUrl = (p) => `https://www.google.com/maps/search/${encodeURIComponent(p.name+" National Park")}`;
 
 // ── SVG Map (simple linear lat/lng projection — no distortion) ────
@@ -665,7 +670,8 @@ function SVGMap({ parks, checked, visits, isJa, onParkClick, hoveredId, setHover
     setPan(p => clampPan(p.x, p.y, newZoom));
   };
 
-  // Wheel zoom (desktop)
+  // Wheel zoom (desktop). Attached natively with passive:false because React's
+  // onWheel is passive, so preventDefault() there can't stop the page scrolling.
   const onWheel = (e) => {
     e.preventDefault();
     const rect = svgRef.current.getBoundingClientRect();
@@ -675,6 +681,16 @@ function SVGMap({ parks, checked, visits, isJa, onParkClick, hoveredId, setHover
     zoomBy(e.deltaY < 0 ? 1.2 : 1/1.2, cx, cy);
   };
 
+  const onWheelRef = useRef(onWheel);
+  onWheelRef.current = onWheel;
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const handler = (e) => onWheelRef.current(e);
+    el.addEventListener("wheel", handler, { passive:false });
+    return () => el.removeEventListener("wheel", handler);
+  }, []);
+
   const viewBoxStr = `${-pan.x/zoom} ${-pan.y/zoom} ${MAP_W/zoom} ${MAP_H/zoom}`;
 
   return (
@@ -683,8 +699,7 @@ function SVGMap({ parks, checked, visits, isJa, onParkClick, hoveredId, setHover
         <svg ref={svgRef} viewBox={viewBoxStr}
           style={{width:"100%",background:themeColors.mapBg,borderRadius:10,border:`1px solid ${themeColors.mapBorder}`,display:"block",touchAction:"none",cursor:dragRef.current.dragging?"grabbing":"grab"}}
           onMouseDown={onPointerDown} onMouseMove={onPointerMove} onMouseUp={onPointerUp} onMouseLeave={onPointerUp}
-          onTouchStart={onTouchStart} onTouchMove={onPointerMove} onTouchEnd={onPointerUp}
-          onWheel={onWheel}>
+          onTouchStart={onTouchStart} onTouchMove={onPointerMove} onTouchEnd={onPointerUp}>
           {/* Land mass */}
           <path d={US_OUTLINE} fill={themeColors.mapLand} stroke={themeColors.mapLandBorder} strokeWidth={1.5/zoom} strokeLinejoin="round"/>
           {/* Reference grid */}
@@ -738,7 +753,7 @@ function SVGMap({ parks, checked, visits, isJa, onParkClick, hoveredId, setHover
       </div>
 
       <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-        {[{label:"Alaska",fn:p=>p.state==="Alaska"},{label:"Hawaii",fn:p=>p.state==="Hawaii"},{label:"Territories",fn:p=>["American Samoa","U.S. Virgin Islands"].includes(p.state)}].map(({label,fn})=>{
+        {[{label:isJa?"アラスカ":"Alaska",fn:p=>p.state==="Alaska"},{label:isJa?"ハワイ":"Hawaii",fn:p=>p.state==="Hawaii"},{label:isJa?"海外領土":"Territories",fn:p=>["American Samoa","U.S. Virgin Islands"].includes(p.state)}].map(({label,fn})=>{
           const sub=outside.filter(fn); if(!sub.length) return null;
           return (
             <div key={label} style={{background:themeColors.cardBg,border:`1px solid ${themeColors.cardBorder}`,borderRadius:8,padding:"8px 12px",flex:1,minWidth:90}}>
@@ -796,7 +811,7 @@ function TimelineView({ parks, visits, isJa, themeColors, onParkClick }) {
 
   if (timeline.length === 0) {
     return (
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:40,color:T.mutedText,fontSize:14,textAlign:"center"}}>
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:40,color:T.mutedText,fontSize:14,textAlign:"center",whiteSpace:"pre-line"}}>
         {isJa ? "まだ訪問記録がありません。\nチェックを入れて旅の記録を始めましょう。" : "No visits logged yet.\nCheck off a park to start your journey timeline."}
       </div>
     );
@@ -1869,8 +1884,17 @@ function exportStoreToFile(store) {
 function parseImportedFile(text) {
   const parsed = JSON.parse(text);
   const data = parsed?.data ?? parsed; // tolerate raw store or wrapped payload
-  if (!data?.profiles || !Array.isArray(data.profiles)) throw new Error("invalid shape");
-  return { ...data, profiles: data.profiles.map(p => ({ ...p, visits: migrateVisits(p.visits) })) };
+  if (!Array.isArray(data?.profiles) || data.profiles.length === 0) throw new Error("invalid shape");
+  const profiles = data.profiles.map(p => {
+    if (!p || typeof p !== "object") throw new Error("invalid profile");
+    const visits = migrateVisits(p.visits);
+    Object.values(visits).forEach(arr => arr.forEach(v => {
+      if (!v || typeof v.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(v.date)) throw new Error("invalid visit");
+    }));
+    return { ...p, id: String(p.id ?? uid()), name: String(p.name ?? "Me"), visits };
+  });
+  const activeId = profiles.some(p => p.id === data.activeId) ? data.activeId : profiles[0].id;
+  return { ...data, activeId, profiles };
 }
 
 // ── Error boundary: shows the real error instead of a blank white screen ──
@@ -1941,10 +1965,11 @@ function App() {
 
   const setVisits = (updater) => {
     setStore(prev => {
-      const newVisits = typeof updater === "function" ? updater(activeProfile.visits) : updater;
+      const prevActive = prev.profiles.find(p=>p.id===prev.activeId) || prev.profiles[0];
+      const newVisits = typeof updater === "function" ? updater(prevActive.visits) : updater;
       return {
         ...prev,
-        profiles: prev.profiles.map(p => p.id===prev.activeId ? {...p, visits:newVisits} : p),
+        profiles: prev.profiles.map(p => p.id===prevActive.id ? {...p, visits:newVisits} : p),
       };
     });
   };
