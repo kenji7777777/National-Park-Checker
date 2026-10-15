@@ -31,3 +31,19 @@ export const STATE_LABELS = [
   {ab:"VT",x:709,y:115},{ab:"NH",x:724,y:121},{ab:"ME",x:757,y:89},
   {ab:"CT",x:709,y:162},{ab:"RI",x:725,y:160},{ab:"DE",x:671,y:212},
 ];
+
+// Inset boxes (in map units) drawn over empty ocean in the lower-left corner,
+// so Alaska and Hawaii parks appear on the main map.
+export const INSETS = [
+  { key:"AK", label:"Alaska", labelJa:"アラスカ", states:["Alaska"],
+    x:6, y:374, w:150, h:120, minLng:-170, maxLng:-130, minLat:54, maxLat:72 },
+  { key:"HI", label:"Hawaii", labelJa:"ハワイ", states:["Hawaii"],
+    x:162, y:420, w:118, h:74, minLng:-160.6, maxLng:-154.4, minLat:18.6, maxLat:22.6 },
+];
+
+export function projectInset(inset, lat, lng) {
+  const pad = 10;
+  const x = inset.x + pad + (lng - inset.minLng) / (inset.maxLng - inset.minLng) * (inset.w - pad*2);
+  const y = inset.y + pad + 6 + (inset.maxLat - lat) / (inset.maxLat - inset.minLat) * (inset.h - pad*2 - 6);
+  return { x, y };
+}

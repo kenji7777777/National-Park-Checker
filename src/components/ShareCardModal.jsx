@@ -4,7 +4,7 @@ import { BADGES, TAG_BADGES, computeTripStreaks } from "../data/achievements";
 import { today } from "../utils";
 
 // ── Share Card (Canvas-generated shareable image) ──────────────────
-export function ShareCardModal({ profile, visits, checked, isJa, tx, onClose, earnedBadgeIds=[], earnedTagIds=[], questProgress=[] }) {
+export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose, earnedBadgeIds=[], earnedTagIds=[], questProgress=[] }) {
   const canvasRef = useRef(null);
   const [imgUrl, setImgUrl] = useState(null);
   const [theme, setTheme] = useState("passport"); // passport | topo | retro
@@ -559,26 +559,26 @@ export function ShareCardModal({ profile, visits, checked, isJa, tx, onClose, ea
 
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2500,padding:16,overflowY:"auto"}} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{background:"#0d150d",border:"1px solid #2a4a2a",borderRadius:16,padding:16,maxWidth:420,width:"100%",margin:"auto"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:T.cardBg,border:`1px solid ${T.headerBorder}`,borderRadius:16,padding:16,maxWidth:420,width:"100%",margin:"auto"}}>
 
         {/* Theme selector */}
         <div style={{display:"flex",gap:6,marginBottom:12}}>
           {Object.entries(themeLabels).map(([key,label]) => (
             <button key={key} onClick={()=>setTheme(key)} style={{
               flex:1, padding:"7px 4px", borderRadius:8, fontSize:11, cursor:"pointer", fontFamily:"inherit",
-              background: theme===key?"#2a5a2a":"transparent",
-              border:`1px solid ${theme===key?"#5a9a5a":"#2a3a2a"}`,
-              color: theme===key?"#a8d4a8":"#6a8a6a",
+              background: theme===key?T.btnBgActive:"transparent",
+              border:`1px solid ${theme===key?T.btnBorderActive:T.inputBorder}`,
+              color: theme===key?T.chipTextActive:T.mutedText,
             }}>{label}</button>
           ))}
         </div>
 
         <canvas ref={canvasRef} style={{width:"100%",borderRadius:10,display:"block"}} />
         <div style={{display:"flex",gap:8,marginTop:14}}>
-          <button onClick={handleShare} style={{flex:1,padding:"12px",background:"#2a5a2a",border:"1px solid #4a8a4a",borderRadius:8,color:"#a8d4a8",fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+          <button onClick={handleShare} style={{flex:1,padding:"12px",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,borderRadius:8,color:T.chipTextActive,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
             {(typeof navigator!=="undefined"&&navigator.share) ? (isJa?"📤 共有":"📤 Share") : (isJa?"⬇ 保存":"⬇ Save")}
           </button>
-          <button onClick={onClose} style={{padding:"12px 20px",background:"transparent",border:"1px solid #2a3a2a",borderRadius:8,color:"#6a8a6a",fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+          <button onClick={onClose} style={{padding:"12px 20px",background:"transparent",border:`1px solid ${T.inputBorder}`,borderRadius:8,color:T.mutedText,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
             {tx.cancel}
           </button>
         </div>

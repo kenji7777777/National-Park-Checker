@@ -15,6 +15,9 @@ export const BADGES = [
   { id:"thirty_parks", icon:"⛰️", name:"Park Veteran", nameJa:"パークベテラン",
     desc:"Visit 30 parks", descJa:"30公園を訪問する",
     check: ({totalChecked}) => totalChecked >= 30 },
+  { id:"halfway", icon:"🧭", name:"Halfway There", nameJa:"折り返し地点",
+    desc:"Visit 32 parks — over half of them", descJa:"32公園を訪問する（全体の半分以上）",
+    check: ({totalChecked}) => totalChecked >= 32 },
   { id:"all_parks", icon:"👑", name:"Grand Master", nameJa:"グランドマスター",
     desc:"Visit all 63 parks", descJa:"全63公園を訪問する",
     check: ({totalChecked}) => totalChecked >= 63 },
@@ -27,6 +30,12 @@ export const BADGES = [
   { id:"northeast", icon:"🍁", name:"Northeast Complete", nameJa:"北東部コンプリート",
     desc:"Visit every Northeast park", descJa:"北東部の全公園を訪問する",
     check: ({regionCounts}) => regionCounts["Northeast"]?.done >= regionCounts["Northeast"]?.total },
+  { id:"southeast", icon:"🐊", name:"Southeast Complete", nameJa:"南東部コンプリート",
+    desc:"Visit every Southeast park", descJa:"南東部の全公園を訪問する",
+    check: ({regionCounts}) => regionCounts["Southeast"]?.done >= regionCounts["Southeast"]?.total },
+  { id:"midwest", icon:"🌾", name:"Midwest Complete", nameJa:"中西部コンプリート",
+    desc:"Visit every Midwest park", descJa:"中西部の全公園を訪問する",
+    check: ({regionCounts}) => regionCounts["Midwest"]?.done >= regionCounts["Midwest"]?.total },
   { id:"rocky_mountains", icon:"🏔️", name:"Rocky Mountains Complete", nameJa:"ロッキー山脈コンプリート",
     desc:"Visit every Rocky Mountains park", descJa:"ロッキー山脈の全公園を訪問する",
     check: ({regionCounts}) => regionCounts["Rocky Mountains"]?.done >= regionCounts["Rocky Mountains"]?.total },
@@ -46,6 +55,29 @@ export const BADGES = [
       }));
       return Object.values(months).some(c => c >= 3);
     } },
+  { id:"four_seasons", icon:"🍂", name:"Four Seasons", nameJa:"四季の旅人",
+    desc:"Log visits in spring, summer, fall and winter", descJa:"春・夏・秋・冬それぞれの季節に訪問する",
+    check: ({visits}) => {
+      const seasons = new Set();
+      Object.values(visits).forEach(arr => arr.forEach(v => {
+        const m = Number(v.date.slice(5,7));
+        seasons.add(m>=3&&m<=5 ? "spring" : m>=6&&m<=8 ? "summer" : m>=9&&m<=11 ? "fall" : "winter");
+      }));
+      return seasons.size === 4;
+    } },
+  { id:"year_ten", icon:"🗓️", name:"Big Year", nameJa:"ビッグイヤー",
+    desc:"Visit 10 different parks in one calendar year", descJa:"1年間で10種類の公園を訪問する",
+    check: ({visits}) => {
+      const byYear = {};
+      Object.entries(visits).forEach(([pid, arr]) => arr.forEach(v => {
+        const y = v.date.slice(0,4);
+        (byYear[y] = byYear[y] || new Set()).add(pid);
+      }));
+      return Object.values(byYear).some(set => set.size >= 10);
+    } },
+  { id:"coast_to_coast", icon:"🇺🇸", name:"Coast to Coast", nameJa:"大陸横断",
+    desc:"Visit a West Coast park and an East Coast park", descJa:"西海岸と東海岸（北東部・南東部）の公園を両方訪問する",
+    check: ({regionCounts}) => regionCounts["West Coast"]?.done > 0 && (regionCounts["Northeast"]?.done > 0 || regionCounts["Southeast"]?.done > 0) },
 ];
 
 export function computeEarnedBadges(visits, checked) {
@@ -89,6 +121,27 @@ export const QUESTS = [
   { id:"island_hopper", icon:"🏝️", name:"Island Hopper", nameJa:"アイランド・ホッパー",
     desc:"Reach the parks scattered across the Pacific and Caribbean", descJa:"太平洋とカリブ海に散らばる島の公園を訪れる",
     parkIds:[2,30,31,56] },
+  { id:"great_lakes", icon:"⛵", name:"Great Lakes Circuit", nameJa:"五大湖サーキット",
+    desc:"Explore the shores and islands of the Great Lakes region", descJa:"五大湖周辺の湖岸と島々を巡る",
+    parkIds:[34,33,57,15] },
+  { id:"northern_rockies", icon:"🦬", name:"Northern Rockies", nameJa:"ノーザン・ロッキー",
+    desc:"Yellowstone, Grand Teton and Glacier — the classic road trip", descJa:"イエローストーン・グランドティートン・グレイシャーを結ぶ定番ルート",
+    parkIds:[61,25,22] },
+  { id:"colorado_four", icon:"🏔️", name:"Colorado High Country", nameJa:"コロラド・ハイカントリー",
+    desc:"Visit all four national parks in Colorado", descJa:"コロラド州の全4国立公園を巡る",
+    parkIds:[51,27,43,7] },
+  { id:"pacific_northwest", icon:"🌲", name:"Pacific Northwest", nameJa:"パシフィック・ノースウエスト",
+    desc:"Rainforests, glaciers and volcanoes of Washington and Oregon", descJa:"ワシントン州とオレゴン州の雨林・氷河・火山を巡る",
+    parkIds:[44,46,47,14] },
+  { id:"sea_of_sand", icon:"🏖️", name:"Sea of Sand", nameJa:"シー・オブ・サンド",
+    desc:"Walk the great dune fields, from Colorado to the Arctic", descJa:"コロラドから北極圏まで、大砂丘を歩く",
+    parkIds:[27,58,33,39] },
+  { id:"florida_waters", icon:"🐢", name:"Florida Waters", nameJa:"フロリダ・ウォーターズ",
+    desc:"Reefs, mangroves and island forts of South Florida", descJa:"南フロリダのサンゴ礁・マングローブ・島の要塞を巡る",
+    parkIds:[6,18,19] },
+  { id:"dakota_trail", icon:"🦅", name:"Dakota Badlands Trail", nameJa:"ダコタ・バッドランズ",
+    desc:"Badlands, caves and prairie of the Dakotas", descJa:"ダコタの荒野・洞窟・大草原を巡る",
+    parkIds:[4,59,55] },
 ];
 
 export function computeQuestProgress(checked) {

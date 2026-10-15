@@ -1,7 +1,7 @@
 // ── Site-wide themes ────────────────────────────────────────────────
 export const THEMES = {
   passport: {
-    label: "🏔", labelJa:"🏔", name:"Passport", nameJa:"パスポート",
+    label: "🏔", labelJa:"🏔", name:"Passport", nameJa:"パスポート", scheme:"dark",
     fontBody: "'Georgia','Times New Roman',serif",
     bg:"#0a0f0a", headerBg:"linear-gradient(180deg,#1a2e1a,#0a1a0a)", headerBorder:"#2a4a2a",
     textPrimary:"#e8dcc8", textSecondary:"#7a8a7a", accentText:"#a8d4a8", mutedText:"#6a8a6a",
@@ -17,7 +17,7 @@ export const THEMES = {
     pinCheckmark:"#0a1a0a", pinBadge:"#8aff8a",
   },
   topo: {
-    label:"🗺", labelJa:"🗺", name:"Topo Map", nameJa:"地形図",
+    label:"🗺", labelJa:"🗺", name:"Topo Map", nameJa:"地形図", scheme:"dark",
     fontBody: "'Courier New',monospace",
     bg:"#0d1712", headerBg:"linear-gradient(180deg,#12241a,#0a1610)", headerBorder:"#2a5a3a",
     textPrimary:"#eafbea", textSecondary:"#5a9a6a", accentText:"#4adc6a", mutedText:"#5a9a6a",
@@ -33,7 +33,7 @@ export const THEMES = {
     pinCheckmark:"#0a1a0a", pinBadge:"#8af0a0",
   },
   retro: {
-    label:"🎨", labelJa:"🎨", name:"Retro", nameJa:"レトロ",
+    label:"🎨", labelJa:"🎨", name:"Retro", nameJa:"レトロ", scheme:"light",
     fontBody: "'Georgia','Times New Roman',serif",
     bg:"#e8d5a8", headerBg:"linear-gradient(180deg,#dcc090,#e8d5a8)", headerBorder:"#8a3a2a",
     textPrimary:"#4a2a1a", textSecondary:"#6a4a2a", accentText:"#8a3a2a", mutedText:"#7a5a3a",

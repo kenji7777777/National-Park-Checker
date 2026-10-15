@@ -12,7 +12,7 @@ export function BadgeModal({ earnedIds, earnedTagIds, questProgress, isJa, tx, t
 
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2000}} onClick={onClose}>
-      <div onClick={e=>e.stopPropagation()} style={{background:T.cardBgAlt,border:`1px solid ${T.headerBorder}`,borderRadius:"16px 16px 0 0",width:"100%",maxWidth:500,padding:"20px 20px 32px",maxHeight:"82vh",overflowY:"auto"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:T.cardBgAlt,border:`1px solid ${T.headerBorder}`,borderRadius:"16px 16px 0 0",width:"100%",maxWidth:500,padding:"20px 20px calc(32px + env(safe-area-inset-bottom))",maxHeight:"82vh",overflowY:"auto"}}>
         <div style={{width:36,height:4,background:T.cardBorder,borderRadius:2,margin:"0 auto 16px"}}/>
 
         {/* Inner tab switcher */}
@@ -21,13 +21,13 @@ export function BadgeModal({ earnedIds, earnedTagIds, questProgress, isJa, tx, t
             padding:"6px 16px",borderRadius:20,fontSize:12,cursor:"pointer",fontFamily:"inherit",
             background:innerTab==="badges"?T.btnBgActive:"transparent",
             border:`1px solid ${innerTab==="badges"?T.btnBorderActive:T.cardBorder}`,
-            color:innerTab==="badges"?T.accentText:T.mutedText,
+            color:innerTab==="badges"?T.chipTextActive:T.mutedText,
           }}>🏅 {tx.badges} ({allEarnedCount}/{allBadgeCount})</button>
           <button onClick={()=>setInnerTab("quests")} style={{
             padding:"6px 16px",borderRadius:20,fontSize:12,cursor:"pointer",fontFamily:"inherit",
             background:innerTab==="quests"?T.btnBgActive:"transparent",
             border:`1px solid ${innerTab==="quests"?T.btnBorderActive:T.cardBorder}`,
-            color:innerTab==="quests"?T.accentText:T.mutedText,
+            color:innerTab==="quests"?T.chipTextActive:T.mutedText,
           }}>🗺 {tx.quests} ({questProgress.filter(q=>q.complete).length}/{questProgress.length})</button>
         </div>
 
