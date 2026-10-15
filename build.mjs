@@ -1,21 +1,23 @@
-// Builds index.html from src/: compiles src/app.jsx (JSX -> plain JS) and
+// Builds index.html from src/: bundles src/main.jsx and its modules (JSX -> plain JS) and
 // inlines React, so the published page needs no CDN and no in-browser Babel.
 // Usage: npm install && npm run build
 import { readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { transformSync } from "esbuild";
+import { buildSync } from "esbuild";
 
 const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
 // Prevent a literal "</script" inside inlined code from closing the tag early.
 const inline = (code) => code.replace(/<\/script/gi, "<\\/script");
 
-const app = transformSync(read("src/app.jsx"), {
-  loader: "jsx",
+const app = buildSync({
+  entryPoints: [new URL("src/main.jsx", import.meta.url).pathname],
+  bundle: true,
+  write: false,
   format: "iife",
   target: "es2018",
   minify: true,
   legalComments: "none",
-}).code;
+}).outputFiles[0].text;
 
 const html = read("src/index.template.html")
   .replace("/*__REACT__*/", () => inline(read("node_modules/react/umd/react.production.min.js")))
