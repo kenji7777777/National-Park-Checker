@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a2e1a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="National Parks">
+  <title>US National Parks Checklist</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { overflow-x: hidden; }
+    * { -webkit-tap-highlight-color: transparent; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #2a4a2a; border-radius: 2px; }
+    #offline-banner {
+      display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
+      background: #5a3a1a; color: #f0d8a8; text-align: center; font-size: 12px;
+      padding: 6px 0; font-family: Georgia, serif;
+    }
+    #offline-banner.show { display: block; }
+    #install-prompt {
+      display: none; position: fixed; bottom: 16px; left: 16px; right: 16px; z-index: 9998;
+      background: #1a3a1a; border: 1px solid #3a6a3a; border-radius: 12px; padding: 12px 16px;
+      color: #a8d4a8; font-family: Georgia, serif; font-size: 13px;
+      align-items: center; justify-content: space-between; gap: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    #install-prompt.show { display: flex; }
+    #install-prompt button {
+      background: #2a5a2a; border: 1px solid #4a8a4a; color: #a8d4a8;
+      border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-family: inherit;
+    }
+    #install-prompt .dismiss { background: transparent; border: 1px solid #2a3a2a; color: #6a8a6a; }
+  </style>
+</head>
+<body>
+  <div id="offline-banner">📡 Offline — your checklist still works and is saved on this device</div>
+  <div id="root">
+    <div id="boot-status" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0a1410;color:#a8d4a8;font-family:Georgia,serif;padding:24px;text-align:center;">
+      <div>
+        <div style="font-size:28px;margin-bottom:12px;">🏔️</div>
+        <div style="font-size:14px;opacity:0.8;">Loading…</div>
+      </div>
+    </div>
+  </div>
+  <div id="install-prompt">
+    <span>📲 Add to Home Screen for offline access</span>
+    <div style="display:flex;gap:6px;flex-shrink:0;">
+      <button id="install-btn">Install</button>
+      <button class="dismiss" id="dismiss-btn">✕</button>
+    </div>
+  </div>
+
+  <script>
+    // Fallback: if the app hasn't mounted within a few seconds (CDN blocked,
+    // offline, or a script error), replace the loading state with a visible
+    // diagnostic message instead of staying blank forever.
+    window.__bootOk = false;
+    window.addEventListener("error", function (e) {
+      showBootError((e && e.message) ? e.message : "Unknown script error");
+    });
+    function showBootError(detail) {
+      if (window.__bootOk) return;
+      var el = document.getElementById("boot-status");
+      if (!el) return;
+      el.innerHTML =
+        '<div style="max-width:420px;">' +
+        '<div style="font-size:28px;margin-bottom:12px;">⚠️</div>' +
+        '<div style="font-size:15px;margin-bottom:10px;">Failed to load the app.</div>' +
+        '<div style="font-size:12px;opacity:0.75;margin-bottom:14px;">Try reloading the page. If it keeps happening, please report the message below.</div>' +
+        '<div style="font-size:10px;opacity:0.5;word-break:break-word;">' + String(detail).replace(/</g,"&lt;") + '</div>' +
+        '</div>';
+    }
+    window.__bootTimer = setTimeout(function () {
+      if (!window.__bootOk) showBootError("Timed out waiting for the app to start.");
+    }, 8000);
+  </script>
+
+  <!-- React 18 (inlined at build time; see build.mjs) -->
+  <script>/*__REACT__*/</script>
+  <script>/*__REACT_DOM__*/</script>
+
+  <script>
+    // Offline support: sw.js caches this page so it opens without a connection.
+    // Service workers need http(s); skip when opened as a local file.
+    if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(() => {});
+      });
+    }
+
+    function updateOnlineStatus() {
+      const banner = document.getElementById("offline-banner");
+      if (navigator.onLine) banner.classList.remove("show");
+      else banner.classList.add("show");
+    }
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
+    updateOnlineStatus();
+
+    let deferredPrompt;
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (!sessionStorage.getItem("installDismissed") && !window.matchMedia("(display-mode: standalone)").matches) {
+        document.getElementById("install-prompt").classList.add("show");
+      }
+    });
+    document.getElementById("install-btn").addEventListener("click", async () => {
+      document.getElementById("install-prompt").classList.remove("show");
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+      }
+    });
+    document.getElementById("dismiss-btn").addEventListener("click", () => {
+      document.getElementById("install-prompt").classList.remove("show");
+      sessionStorage.setItem("installDismissed", "1");
+    });
+  </script>
+
+  <script>
+/*__APP__*/
+  </script>
+</body>
