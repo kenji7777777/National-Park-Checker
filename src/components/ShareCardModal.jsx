@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "../react.js";
 import { REGION_ORDER, parks } from "../data/parks";
 import { BADGES, TAG_BADGES, computeTripStreaks } from "../data/achievements";
 import { today } from "../utils";
+import { MAP_H, MAP_W, US_OUTLINE, project } from "./mapData";
 
 // ── Share Card (Canvas-generated shareable image) ──────────────────
 export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose, earnedBadgeIds=[], earnedTagIds=[], questProgress=[] }) {
@@ -41,6 +42,51 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
   }, [earnedBadgeIds, earnedTagIds]);
   const totalBadgeCount = BADGES.length + TAG_BADGES.length;
   const completedQuestCount = questProgress.filter(q => q.complete).length;
+
+  // Randomly pick 2–3 earned badge/quest titles to show as "earned titles" —
+  // gives the card a game-like sense of accomplishment beyond just icons.
+  const titleBadges = useMemo(() => {
+    const fromBadges = BADGES.filter(b => earnedBadgeIds.includes(b.id)).map(b => ({ icon: b.icon, name: isJa ? b.nameJa : b.name }));
+    const fromTags   = TAG_BADGES.filter(b => earnedTagIds.includes(b.id)).map(b => ({ icon: b.icon, name: isJa ? b.nameJa : b.name }));
+    const fromQuests = questProgress.filter(q => q.complete).map(q => ({ icon: q.icon, name: isJa ? q.nameJa : q.name }));
+    const pool = [...fromBadges, ...fromTags, ...fromQuests];
+    if (pool.length === 0) return [];
+    // shuffle (Fisher–Yates) then take up to 3
+    const shuffled = [...pool];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled.slice(0, Math.min(3, shuffled.length));
+  }, [earnedBadgeIds, earnedTagIds, questProgress, isJa]);
+
+  // Next goal hint: the closest not-yet-complete quest, or (if none in progress)
+  // the next visit-count milestone badge — fills the empty space below the
+  // badge/quest showcase with something actionable to chase next.
+  const nextGoal = useMemo(() => {
+    const inProgress = questProgress.filter(q => !q.complete && q.done > 0)
+      .sort((a,b) => (b.done/b.total) - (a.done/a.total));
+    if (inProgress.length > 0) {
+      const q = inProgress[0];
+      return { icon: q.icon, name: isJa ? q.nameJa : q.name, done: q.done, total: q.total };
+    }
+    const notStarted = questProgress.find(q => !q.complete);
+    if (notStarted) {
+      return { icon: notStarted.icon, name: isJa ? notStarted.nameJa : notStarted.name, done: notStarted.done, total: notStarted.total };
+    }
+    const milestones = [
+      { id: "five_parks", threshold: 5 },
+      { id: "fifteen_parks", threshold: 15 },
+      { id: "thirty_parks", threshold: 30 },
+      { id: "all_parks", threshold: 63 },
+    ];
+    const nextMilestone = milestones.find(m => totalChecked < m.threshold && !earnedBadgeIds.includes(m.id));
+    if (nextMilestone) {
+      const badge = BADGES.find(b => b.id === nextMilestone.id);
+      return { icon: badge.icon, name: isJa ? badge.nameJa : badge.name, done: totalChecked, total: nextMilestone.threshold };
+    }
+    return null;
+  }, [questProgress, totalChecked, earnedBadgeIds, isJa]);
 
   // Catchphrase pools, tiered by achievement level — random pick per generation
   const catchphrases = useMemo(() => {
@@ -96,16 +142,21 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
       : d.toLocaleDateString("en-US", { month:"short", day:"numeric" });
   }
 
-  // ── Shared: generation timestamp (small, bottom of card) ──
+  // ── Shared: generation timestamp (clear pill, bottom of card) ──
   const generatedAt = useMemo(() => new Date(), []);
-  function drawTimestamp(ctx, cx, y, color, fontFamily) {
+  function drawTimestamp(ctx, cx, y, borderColor, bgColor, textColor, fontFamily) {
     const stamp = isJa
-      ? `${tx.generatedOn}: ${generatedAt.getFullYear()}/${generatedAt.getMonth()+1}/${generatedAt.getDate()} ${String(generatedAt.getHours()).padStart(2,"0")}:${String(generatedAt.getMinutes()).padStart(2,"0")}`
-      : `${tx.generatedOn}: ${generatedAt.toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"})} ${String(generatedAt.getHours()).padStart(2,"0")}:${String(generatedAt.getMinutes()).padStart(2,"0")}`;
+      ? `📅 ${tx.generatedOn}: ${generatedAt.getFullYear()}/${generatedAt.getMonth()+1}/${generatedAt.getDate()} ${String(generatedAt.getHours()).padStart(2,"0")}:${String(generatedAt.getMinutes()).padStart(2,"0")}`
+      : `📅 ${tx.generatedOn}: ${generatedAt.toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric"})} ${String(generatedAt.getHours()).padStart(2,"0")}:${String(generatedAt.getMinutes()).padStart(2,"0")}`;
     ctx.textAlign = "center";
-    ctx.fillStyle = color;
-    ctx.font = `16px ${fontFamily}`;
-    ctx.fillText(stamp, cx, y);
+    ctx.font = `600 18px ${fontFamily}`;
+    const w = ctx.measureText(stamp).width + 40, h = 36;
+    const x = cx - w/2;
+    ctx.fillStyle = bgColor; ctx.strokeStyle = borderColor; ctx.lineWidth = 1.2;
+    roundRect(ctx, x, y, w, h, h/2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = textColor;
+    ctx.fillText(stamp, cx, y + h*0.68);
+    return h;
   }
 
   // ══════════════════════════════════════════════════════
@@ -131,22 +182,31 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
     ctx.fillText(isJa ? "アメリカ国立公園" : "U.S. NATIONAL PARKS", cx, 100);
     ctx.letterSpacing = "0px";
 
+    // Star field drawn FIRST as a dimmed hero backdrop, then the big number is
+    // stamped on top of it so the progress count visually "sits within" the stars.
+    const starFieldY = 138;
+    const starFieldH = drawStarField(ctx, cx, starFieldY, "#5acc5a", "#4a8a5a", "#3a6a4a");
+
     ctx.fillStyle = "#e8f0e0"; ctx.font = "700 180px Georgia, serif";
-    ctx.fillText(String(totalChecked), cx, 290);
+    ctx.fillText(String(totalChecked), cx, starFieldY + starFieldH*0.56 + 60);
 
-    ctx.fillStyle = "#9ac89a"; ctx.font = "400 30px Georgia, serif";
-    ctx.fillText(isJa ? `／ ${parks.length} 公園 訪問済み` : `of ${parks.length} parks visited`, cx, 332);
+    ctx.fillStyle = "#c8e8c0"; ctx.font = "400 30px Georgia, serif";
+    ctx.fillText(isJa ? `／ ${parks.length} 公園 訪問済み` : `of ${parks.length} parks visited`, cx, starFieldY + starFieldH*0.56 + 100);
 
-    drawPill(ctx, cx, 370, catchphrases, "#5a9a6a", "rgba(90,160,100,0.15)", "#c8e8c8", "italic 600 28px Georgia, serif");
-    const streakOffset = drawStreakBadge(ctx, cx, 432, "#5a9a6a", "rgba(90,160,100,0.1)", "#8ad49a", "600 20px Georgia, serif");
+    const afterStarY = starFieldY + starFieldH + 30;
+    const titleRowH = drawTitleRow(ctx, cx, afterStarY, "rgba(90,160,100,0.15)", "#5a9a6a", "#c8e8c8", "600 17px Georgia, serif");
 
-    line(ctx, cx, 452 + streakOffset);
+    const pillY = afterStarY + titleRowH + (titleRowH ? 4 : 0);
+    drawPill(ctx, cx, pillY, "🎖️ " + catchphrases, "#5a9a6a", "rgba(90,160,100,0.18)", "#c8e8c8", "italic 700 34px Georgia, serif");
+    const streakOffset = drawStreakBadge(ctx, cx, pillY + 72, "#5a9a6a", "rgba(90,160,100,0.1)", "#8ad49a", "600 20px Georgia, serif");
+
+    line(ctx, cx, pillY + 92 + streakOffset);
     ctx.fillStyle = "#6a9a6a"; ctx.font = "500 22px Georgia, serif";
-    ctx.fillText(isJa ? "地域別 達成率" : "PROGRESS BY REGION", cx, 490 + streakOffset);
+    ctx.fillText(isJa ? "地域別 達成率" : "PROGRESS BY REGION", cx, pillY + 130 + streakOffset);
 
-    drawRegionGrid(ctx, cx, 520 + streakOffset, "#a8c8a8", "#7aae7a", "#1a2e1a", "#5acc5a");
+    drawRegionGrid(ctx, cx, pillY + 160 + streakOffset, "#a8c8a8", "#7aae7a", "#1a2e1a", "#5acc5a");
 
-    const dividerY = 520 + streakOffset + Math.ceil(regionStats.length/2) * 56 + 14;
+    const dividerY = pillY + 160 + streakOffset + Math.ceil(regionStats.length/2) * 56 + 14;
     line(ctx, cx, dividerY);
     ctx.fillStyle = "#6a9a6a"; ctx.font = "500 22px Georgia, serif";
     ctx.fillText(isJa ? "直近訪れた公園" : "RECENTLY VISITED", cx, dividerY + 36);
@@ -155,16 +215,23 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
 
     const badgeShowcaseY = dividerY + 60 + 338 + 24;
     const showcaseResult = drawBadgeShowcase(ctx, cx, badgeShowcaseY, "#111e11", "#2a4a3a", "#8aaa8a", "#0a1a0a", "#5acc5a");
-    const nameBadgeY = Math.max(H - 88, showcaseResult.nextY + 40);
+
+    let curY = showcaseResult.nextY + 24;
+    const nextGoalH = drawNextGoalHint(ctx, cx, curY, "#111e11", "#2a4a3a", "#7aae7a", "#c8e8c8", "#1a2e1a", "#5acc5a", "Georgia, serif");
+    if (nextGoalH) curY += nextGoalH + 24;
+    const miniMapH = drawMiniMap(ctx, cx, curY, "#0f1f0f", "#2a4a3a", "#7aae7a", "#1a2e1a", "#3a6a4a", "#5acc5a", "#4a6a4a", "Georgia, serif");
+    curY += miniMapH + 40;
+
+    const nameBadgeY = Math.max(H - 120, curY);
 
     drawNameBadge(ctx, cx, nameBadgeY, "👤", "#0f1f0f", "#3a6a4a", "#a8d4a8", "Georgia, serif");
-    drawTimestamp(ctx, cx, nameBadgeY + 72, "#3a5a4a", "Georgia, serif");
+    drawTimestamp(ctx, cx, nameBadgeY + 78, "#3a6a4a", "#0f1f0f", "#8ad4a0", "Georgia, serif");
 
     function line(ctx, cx, y) {
       ctx.strokeStyle = "#3a6a4a"; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.moveTo(cx-200, y); ctx.lineTo(cx+200, y); ctx.stroke();
     }
-    return Math.ceil(nameBadgeY + 72 + 50);
+    return Math.ceil(nameBadgeY + 78 + 36 + 40);
   }
 
   // ══════════════════════════════════════════════════════
@@ -199,23 +266,31 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
     ctx.fillText(isJa ? "アメリカ国立公園 · 記録" : "U.S. NATIONAL PARKS · LOG", cx, 100);
     ctx.letterSpacing = "0px";
 
-    // Elevation-style number
+    // Star field drawn FIRST as a dimmed hero backdrop, then the elevation-style
+    // number is stamped on top of it.
+    const starFieldY = 130;
+    const starFieldH = drawStarField(ctx, cx, starFieldY, "#3adc5a", "#4a9a5a", "#3a7a4a");
+
     ctx.fillStyle = "#eafbea"; ctx.font = "800 180px 'Courier New', monospace";
-    ctx.fillText(String(totalChecked), cx, 290);
+    ctx.fillText(String(totalChecked), cx, starFieldY + starFieldH*0.56 + 60);
     ctx.fillStyle = "#5adc7a"; ctx.font = "600 26px 'Courier New', monospace";
-    ctx.fillText(isJa ? `PARKS 訪問 / ${parks.length}` : `PARKS VISITED / ${parks.length}`, cx, 328);
+    ctx.fillText(isJa ? `PARKS 訪問 / ${parks.length}` : `PARKS VISITED / ${parks.length}`, cx, starFieldY + starFieldH*0.56 + 98);
 
-    drawPill(ctx, cx, 368, catchphrases.toUpperCase(), "#4adc6a", "rgba(60,180,90,0.12)", "#8af0a0", "700 24px 'Courier New', monospace");
-    const streakOffset = drawStreakBadge(ctx, cx, 430, "#3a8a4a", "rgba(60,180,90,0.08)", "#6adc8a", "600 18px 'Courier New', monospace");
+    const afterStarY = starFieldY + starFieldH + 30;
+    const titleRowH = drawTitleRow(ctx, cx, afterStarY, "rgba(60,180,90,0.12)", "#4adc6a", "#8af0a0", "600 16px 'Courier New', monospace");
 
-    dashLine(cx, 448 + streakOffset);
+    const pillY = afterStarY + titleRowH + (titleRowH ? 4 : 0);
+    drawPill(ctx, cx, pillY, "◆ " + catchphrases.toUpperCase(), "#4adc6a", "rgba(60,180,90,0.16)", "#8af0a0", "700 30px 'Courier New', monospace");
+    const streakOffset = drawStreakBadge(ctx, cx, pillY + 72, "#3a8a4a", "rgba(60,180,90,0.08)", "#6adc8a", "600 18px 'Courier New', monospace");
+
+    dashLine(cx, pillY + 90 + streakOffset);
     ctx.fillStyle = "#5adc7a"; ctx.font = "600 20px 'Courier New', monospace"; ctx.letterSpacing="2px";
-    ctx.fillText(isJa ? "地域別 達成率" : "PROGRESS BY REGION", cx, 486 + streakOffset);
+    ctx.fillText(isJa ? "地域別 達成率" : "PROGRESS BY REGION", cx, pillY + 128 + streakOffset);
     ctx.letterSpacing = "0px";
 
-    drawRegionGrid(ctx, cx, 516 + streakOffset, "#c0e8c8", "#4adc6a", "#152a18", "#3adc5a");
+    drawRegionGrid(ctx, cx, pillY + 158 + streakOffset, "#c0e8c8", "#4adc6a", "#152a18", "#3adc5a");
 
-    const dividerY = 516 + streakOffset + Math.ceil(regionStats.length/2) * 56 + 14;
+    const dividerY = pillY + 158 + streakOffset + Math.ceil(regionStats.length/2) * 56 + 14;
     dashLine(cx, dividerY);
     ctx.fillStyle = "#5adc7a"; ctx.font = "600 20px 'Courier New', monospace"; ctx.letterSpacing="2px";
     ctx.fillText(isJa ? "直近訪れた公園" : "RECENTLY VISITED", cx, dividerY + 36);
@@ -225,17 +300,24 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
 
     const badgeShowcaseY = dividerY + 60 + 338 + 24;
     const showcaseResult = drawBadgeShowcase(ctx, cx, badgeShowcaseY, "#0d1a10", "#2a5a3a", "#5adc7a", "#0a1510", "#4adc6a");
-    const nameBadgeY = Math.max(H - 88, showcaseResult.nextY + 40);
+
+    let curY = showcaseResult.nextY + 24;
+    const nextGoalH = drawNextGoalHint(ctx, cx, curY, "#0d1a10", "#2a5a3a", "#4adc6a", "#8af0a0", "#152a18", "#3adc5a", "'Courier New', monospace");
+    if (nextGoalH) curY += nextGoalH + 24;
+    const miniMapH = drawMiniMap(ctx, cx, curY, "#0a1510", "#2a5a3a", "#4adc6a", "#152a18", "#3a7a4a", "#3adc5a", "#3a7a4a", "'Courier New', monospace");
+    curY += miniMapH + 40;
+
+    const nameBadgeY = Math.max(H - 120, curY);
 
     drawNameBadge(ctx, cx, nameBadgeY, "◉", "#0f1f14", "#3a7a4a", "#5adc7a", "'Courier New', monospace");
-    drawTimestamp(ctx, cx, nameBadgeY + 72, "#2a5a3a", "'Courier New', monospace");
+    drawTimestamp(ctx, cx, nameBadgeY + 78, "#3a7a4a", "#0f1f14", "#6adc8a", "'Courier New', monospace");
 
     function dashLine(cx, y) {
       ctx.strokeStyle = "#3a7a4a"; ctx.lineWidth = 1.5; ctx.setLineDash([6,5]);
       ctx.beginPath(); ctx.moveTo(cx-200, y); ctx.lineTo(cx+200, y); ctx.stroke();
       ctx.setLineDash([]);
     }
-    return Math.ceil(nameBadgeY + 72 + 50);
+    return Math.ceil(nameBadgeY + 78 + 36 + 40);
   }
 
   // ══════════════════════════════════════════════════════
@@ -288,22 +370,31 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
     ctx.strokeStyle = "#8a3a2a"; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(cx-100, 128); ctx.lineTo(cx+100, 128); ctx.stroke();
 
+    // Star field drawn FIRST as a dimmed hero backdrop, then the big number is
+    // stamped on top of it.
+    const starFieldY = 144;
+    const starFieldH = drawStarField(ctx, cx, starFieldY, "#c85a30", "#a86840", "#8a3a2a");
+
     ctx.fillStyle = "#8a3a2a"; ctx.font = "900 190px Georgia, serif";
-    ctx.fillText(String(totalChecked), cx, 300);
-    ctx.fillStyle = "#3a5a3a"; ctx.font = "700 30px Georgia, serif";
-    ctx.fillText(isJa ? `／ ${parks.length} 公園 訪問済み` : `of ${parks.length} parks visited`, cx, 340);
+    ctx.fillText(String(totalChecked), cx, starFieldY + starFieldH*0.56 + 60);
+    ctx.fillStyle = "#5a3a2a"; ctx.font = "700 30px Georgia, serif";
+    ctx.fillText(isJa ? `／ ${parks.length} 公園 訪問済み` : `of ${parks.length} parks visited`, cx, starFieldY + starFieldH*0.56 + 100);
 
-    drawPill(ctx, cx, 378, catchphrases, "#8a3a2a", "rgba(138,58,42,0.12)", "#8a3a2a", "italic 700 28px Georgia, serif");
-    const streakOffset = drawStreakBadge(ctx, cx, 440, "#8a3a2a", "rgba(196,90,50,0.1)", "#8a3a2a", "700 18px Georgia, serif");
+    const afterStarY = starFieldY + starFieldH + 30;
+    const titleRowH = drawTitleRow(ctx, cx, afterStarY, "rgba(138,58,42,0.12)", "#8a3a2a", "#5a3a2a", "600 17px Georgia, serif");
 
-    thickLine(cx, 458 + streakOffset);
+    const pillY = afterStarY + titleRowH + (titleRowH ? 4 : 0);
+    drawPill(ctx, cx, pillY, "★ " + catchphrases, "#8a3a2a", "rgba(138,58,42,0.16)", "#8a3a2a", "italic 700 34px Georgia, serif");
+    const streakOffset = drawStreakBadge(ctx, cx, pillY + 72, "#8a3a2a", "rgba(196,90,50,0.1)", "#8a3a2a", "700 18px Georgia, serif");
+
+    thickLine(cx, pillY + 92 + streakOffset);
     ctx.fillStyle = "#5a3a2a"; ctx.font = "700 22px Georgia, serif"; ctx.letterSpacing="2px";
-    ctx.fillText(isJa ? "地域別 達成率" : "PROGRESS BY REGION", cx, 496 + streakOffset);
+    ctx.fillText(isJa ? "地域別 達成率" : "PROGRESS BY REGION", cx, pillY + 130 + streakOffset);
     ctx.letterSpacing = "0px";
 
-    drawRegionGrid(ctx, cx, 526 + streakOffset, "#5a3a2a", "#8a3a2a", "#d8c090", "#c85a30");
+    drawRegionGrid(ctx, cx, pillY + 160 + streakOffset, "#5a3a2a", "#8a3a2a", "#d8c090", "#c85a30");
 
-    const dividerY = 526 + streakOffset + Math.ceil(regionStats.length/2) * 56 + 14;
+    const dividerY = pillY + 160 + streakOffset + Math.ceil(regionStats.length/2) * 56 + 14;
     thickLine(cx, dividerY);
     ctx.fillStyle = "#5a3a2a"; ctx.font = "700 22px Georgia, serif"; ctx.letterSpacing="2px";
     ctx.fillText(isJa ? "直近訪れた公園" : "RECENTLY VISITED", cx, dividerY + 36);
@@ -313,16 +404,23 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
 
     const badgeShowcaseY = dividerY + 60 + 338 + 24;
     const showcaseResult = drawBadgeShowcase(ctx, cx, badgeShowcaseY, "#e8d5a8", "#8a3a2a", "#5a3a2a", "#dcc898", "#c85a30");
-    const nameBadgeY = Math.max(H - 88, showcaseResult.nextY + 40);
+
+    let curY = showcaseResult.nextY + 24;
+    const nextGoalH = drawNextGoalHint(ctx, cx, curY, "#e8d5a8", "#8a3a2a", "#8a3a2a", "#5a3a2a", "#d8c090", "#c85a30", "Georgia, serif");
+    if (nextGoalH) curY += nextGoalH + 24;
+    const miniMapH = drawMiniMap(ctx, cx, curY, "#dcc898", "#8a3a2a", "#8a3a2a", "#d4bc84", "#8a3a2a", "#c85a30", "#9a8858", "Georgia, serif");
+    curY += miniMapH + 40;
+
+    const nameBadgeY = Math.max(H - 120, curY);
 
     drawNameBadge(ctx, cx, nameBadgeY, "★", "#dcc898", "#8a3a2a", "#8a3a2a", "Georgia, serif");
-    drawTimestamp(ctx, cx, nameBadgeY + 72, "#7a5a3a", "Georgia, serif");
+    drawTimestamp(ctx, cx, nameBadgeY + 78, "#8a3a2a", "#dcc898", "#5a3a2a", "Georgia, serif");
 
     function thickLine(cx, y) {
       ctx.strokeStyle = "#8a3a2a"; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(cx-200, y); ctx.lineTo(cx+200, y); ctx.stroke();
     }
-    return Math.ceil(nameBadgeY + 72 + 50);
+    return Math.ceil(nameBadgeY + 78 + 36 + 40);
   }
 
   // ── Shared: catchphrase pill ──
@@ -334,6 +432,43 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
     roundRect(ctx, x, y, w, h, h/2); ctx.fill(); ctx.stroke();
     ctx.fillStyle = textColor;
     ctx.fillText(text, cx, y + h*0.66);
+  }
+
+  // ── Shared: earned-title chips row (2–3 random badge/quest names as "titles") ──
+  // Wraps onto a second row automatically if the chips are too wide to fit on one line.
+  function drawTitleRow(ctx, cx, y, bgColor, borderColor, textColor, font) {
+    if (titleBadges.length === 0) return 0;
+    ctx.font = font;
+    const gap = 10, padX = 16, h = 34, maxRowW = 920;
+    const chips = titleBadges.map(t => ({ text: `${t.icon} ${t.name}`, w: ctx.measureText(`${t.icon} ${t.name}`).width + padX*2 }));
+
+    // Greedily lay chips into rows that don't exceed maxRowW
+    const rows = [];
+    let row = [], rowW = 0;
+    chips.forEach(c => {
+      const addW = row.length ? c.w + gap : c.w;
+      if (row.length && rowW + addW > maxRowW) {
+        rows.push(row); row = [c]; rowW = c.w;
+      } else {
+        row.push(c); rowW += addW;
+      }
+    });
+    if (row.length) rows.push(row);
+
+    rows.forEach((r, ri) => {
+      const totalW = r.reduce((a,c)=>a+c.w,0) + gap * (r.length - 1);
+      let x = cx - totalW/2;
+      const ry = y + ri * (h + 10);
+      r.forEach(c => {
+        ctx.fillStyle = bgColor; ctx.strokeStyle = borderColor; ctx.lineWidth = 1.2;
+        roundRect(ctx, x, ry, c.w, h, h/2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = textColor; ctx.textAlign = "center";
+        ctx.fillText(c.text, x + c.w/2, ry + h*0.66);
+        x += c.w + gap;
+      });
+    });
+    ctx.textAlign = "center";
+    return rows.length * (h + 10) + 4;
   }
 
   // ── Shared: streak badge (only rendered when a trip streak exists) ──
@@ -432,6 +567,123 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
     ctx.fillText(text, cx, y + h*0.66);
   }
 
+  // ── Shared: 5-point star primitive ──
+  // filled=true  → solid star in fillColor
+  // filled=false → HOLLOW/outline star only (transparent inside, stroke only) so
+  //                unvisited parks read clearly as "not yet" rather than a dim fill
+  function drawStar(ctx, cx, cy, r, filled, fillColor, emptyColor, strokeColor) {
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a1 = -Math.PI/2 + i * 2*Math.PI/5;
+      const a2 = a1 + Math.PI/5;
+      ctx.lineTo(cx + r*Math.cos(a1), cy + r*Math.sin(a1));
+      ctx.lineTo(cx + r*0.42*Math.cos(a2), cy + r*0.42*Math.sin(a2));
+    }
+    ctx.closePath();
+    ctx.strokeStyle = filled ? strokeColor : emptyColor;
+    ctx.lineWidth = filled ? 1.5 : 2.5;
+    if (filled) {
+      ctx.fillStyle = fillColor;
+      ctx.fill();
+    }
+    ctx.stroke();
+  }
+
+  // ── Shared: big star field as a HERO BACKGROUND (large, dimmed stars spanning
+  // near-full width; the big number is drawn on top of this by the caller) ──
+  function drawStarField(ctx, cx, y, fillColor, emptyColor, strokeColor) {
+    const total = parks.length, visitedCount = totalChecked;
+    const cols = 9, rows = Math.ceil(total / cols);
+    const starR = 24, cellW = 108, cellH = 70;
+    const gridW = cols * cellW;
+    const startX = cx - gridW/2 + cellW/2;
+    for (let i = 0; i < total; i++) {
+      const col = i % cols, row = Math.floor(i / cols);
+      const x = startX + col * cellW;
+      const sy = y + row * cellH;
+      const filled = i < visitedCount;
+      ctx.globalAlpha = filled ? 0.55 : 0.5;
+      drawStar(ctx, x, sy, starR, filled, fillColor, emptyColor, strokeColor);
+      ctx.globalAlpha = 1;
+    }
+    return rows * cellH;
+  }
+
+  // ── Shared: "next goal" hint card (closest incomplete quest, or next milestone badge) ──
+  function drawNextGoalHint(ctx, cx, y, bgColor, borderColor, labelColor, textColor, trackColor, fillColor, font) {
+    if (!nextGoal) return 0;
+    const boxW = 900, boxH = 96;
+    const x = cx - boxW/2;
+    ctx.fillStyle = bgColor; ctx.strokeStyle = borderColor; ctx.lineWidth = 2;
+    roundRect(ctx, x, y, boxW, boxH, 16); ctx.fill(); ctx.stroke();
+
+    ctx.textAlign = "left";
+    ctx.font = `700 18px ${font}`;
+    ctx.fillStyle = labelColor;
+    ctx.fillText(isJa ? "🎯 次の目標" : "🎯 NEXT GOAL", x + 28, y + 32);
+
+    ctx.font = `600 22px ${font}`;
+    ctx.fillStyle = textColor;
+    ctx.fillText(`${nextGoal.icon} ${nextGoal.name}`, x + 28, y + 64);
+
+    ctx.textAlign = "right";
+    ctx.font = `700 20px ${font}`;
+    ctx.fillStyle = textColor;
+    ctx.fillText(`${nextGoal.done}/${nextGoal.total}`, x + boxW - 28, y + 64);
+
+    const barX = x + 28, barY = y + 76, barW = boxW - 56, barH = 8;
+    const pct = nextGoal.total > 0 ? nextGoal.done / nextGoal.total : 0;
+    ctx.fillStyle = trackColor;
+    roundRect(ctx, barX, barY, barW, barH, 4); ctx.fill();
+    if (pct > 0) {
+      ctx.fillStyle = fillColor;
+      roundRect(ctx, barX, barY, barW * pct, barH, 4); ctx.fill();
+    }
+    ctx.textAlign = "center";
+    return boxH;
+  }
+
+  // ── Shared: mini US map with a pin per park (reuses the app's own projection) ──
+  function drawMiniMap(ctx, cx, y, bgColor, borderColor, labelColor, landColor, landBorderColor, pinVisitedColor, pinUnvisitedColor, font) {
+    const boxW = 900, boxH = 340, padTop = 46;
+    const x = cx - boxW/2;
+    ctx.fillStyle = bgColor; ctx.strokeStyle = borderColor; ctx.lineWidth = 2;
+    roundRect(ctx, x, y, boxW, boxH, 16); ctx.fill(); ctx.stroke();
+
+    ctx.textAlign = "left";
+    ctx.font = `700 18px ${font}`;
+    ctx.fillStyle = labelColor;
+    ctx.fillText(isJa ? "🗺 訪問済みマップ" : "🗺 PARKS VISITED MAP", x + 28, y + 32);
+
+    const mapAreaW = boxW - 56, mapAreaH = boxH - padTop - 20;
+    const scale = Math.min(mapAreaW / MAP_W, mapAreaH / MAP_H);
+    const offX = x + (boxW - MAP_W * scale) / 2;
+    const offY = y + padTop + (mapAreaH - MAP_H * scale) / 2;
+
+    ctx.save();
+    ctx.translate(offX, offY);
+    ctx.scale(scale, scale);
+    const path = new Path2D(US_OUTLINE);
+    ctx.fillStyle = landColor; ctx.strokeStyle = landBorderColor; ctx.lineWidth = 2.5 / scale;
+    ctx.fill(path); ctx.stroke(path);
+
+    parks.forEach(p => {
+      if (p.lat < 20 || p.lng < -130) return; // lower-48 only, keeps this compact map legible
+      const { x: px, y: py } = project(p.lat, p.lng);
+      const visited = checked[p.id];
+      if (visited) {
+        ctx.fillStyle = pinVisitedColor;
+        ctx.beginPath(); ctx.arc(px, py, 5.5 / scale, 0, Math.PI*2); ctx.fill();
+      } else {
+        ctx.fillStyle = pinUnvisitedColor;
+        ctx.beginPath(); ctx.arc(px, py, 2.5 / scale, 0, Math.PI*2); ctx.fill();
+      }
+    });
+    ctx.restore();
+    ctx.textAlign = "center";
+    return boxH;
+  }
+
   // ── Shared: region progress 2-col grid ──
   function drawRegionGrid(ctx, cx, startY, labelColor, valueColor, trackColor, fillColor) {
     const barAreaX = 90, barAreaW = 1080 - 180;
@@ -523,7 +775,7 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const W = 1080, H = 1950; // tall enough for 2x2 grid + stats + streak + full badge showcase (up to 4 rows) + name badge + timestamp, all dynamically positioned
+    const W = 1080, H = 2900; // tall enough for star hero field + earned titles + 2x2 grid + stats + streak + full badge showcase (up to 4 rows) + next-goal hint + mini map + name badge + timestamp, all dynamically positioned
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext("2d");
 
@@ -568,14 +820,14 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
               flex:1, padding:"7px 4px", borderRadius:8, fontSize:11, cursor:"pointer", fontFamily:"inherit",
               background: theme===key?T.btnBgActive:"transparent",
               border:`1px solid ${theme===key?T.btnBorderActive:T.inputBorder}`,
-              color: theme===key?T.chipTextActive:T.mutedText,
+              color: theme===key?T.accentText:T.mutedText,
             }}>{label}</button>
           ))}
         </div>
 
         <canvas ref={canvasRef} style={{width:"100%",borderRadius:10,display:"block"}} />
         <div style={{display:"flex",gap:8,marginTop:14}}>
-          <button onClick={handleShare} style={{flex:1,padding:"12px",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,borderRadius:8,color:T.chipTextActive,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+          <button onClick={handleShare} style={{flex:1,padding:"12px",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,borderRadius:8,color:T.accentText,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
             {(typeof navigator!=="undefined"&&navigator.share) ? (isJa?"📤 共有":"📤 Share") : (isJa?"⬇ 保存":"⬇ Save")}
           </button>
           <button onClick={onClose} style={{padding:"12px 20px",background:"transparent",border:`1px solid ${T.inputBorder}`,borderRadius:8,color:T.mutedText,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>

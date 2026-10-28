@@ -40,7 +40,7 @@ export function ProfileModal({ T, onReset, profiles, activeId, onSwitch, onCreat
                     autoFocus onKeyDown={e=>{if(e.key==="Enter"&&editName.trim()){onRename(p.id,editName.trim());setEditingId(null);}}}
                     style={{flex:1,padding:"4px 8px",background:T.inputBg,border:`1px solid ${T.headerBorder}`,borderRadius:6,color:T.textPrimary,fontSize:16,outline:"none",fontFamily:"inherit"}}/>
                   <button onClick={()=>{if(editName.trim())onRename(p.id,editName.trim());setEditingId(null);}}
-                    style={{padding:"4px 10px",background:T.btnBgActive,border:"none",borderRadius:6,color:T.chipTextActive,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✓</button>
+                    style={{padding:"4px 10px",background:T.btnBgActive,border:"none",borderRadius:6,color:T.accentText,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✓</button>
                   <button onClick={()=>setEditingId(null)}
                     style={{padding:"4px 8px",background:"transparent",border:"none",color:T.mutedText,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
                 </>
@@ -77,7 +77,7 @@ export function ProfileModal({ T, onReset, profiles, activeId, onSwitch, onCreat
             onKeyDown={e=>{if(e.key==="Enter"&&newName.trim()){onCreate(newName.trim());setNewName("");}}}
             style={{flex:1,padding:"10px 12px",background:T.cardBg,border:`1px solid ${T.headerBorder}`,borderRadius:8,color:T.textPrimary,fontSize:16,outline:"none",fontFamily:"inherit"}}/>
           <button onClick={()=>{if(newName.trim()){onCreate(newName.trim());setNewName("");}}}
-            style={{padding:"10px 16px",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,borderRadius:8,color:T.chipTextActive,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
+            style={{padding:"10px 16px",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,borderRadius:8,color:T.accentText,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>
             + {tx.createProfile}
           </button>
         </div>
@@ -152,7 +152,7 @@ export function DateModal({ T, park, dates, isJa, tx, onClose, onAdd, onDelete, 
                       placeholder={isJa?"一言メモ...":"Add a note..."}
                       onKeyDown={e=>{if(e.key==="Enter")saveEditNote();}}
                       style={{flex:1,padding:"6px 10px",background:T.inputBg,border:`1px solid ${T.headerBorder}`,borderRadius:6,color:T.textPrimary,fontSize:16,outline:"none",fontFamily:"inherit"}}/>
-                    <button onClick={saveEditNote} style={{padding:"6px 10px",background:T.btnBgActive,border:"none",borderRadius:6,color:T.chipTextActive,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✓</button>
+                    <button onClick={saveEditNote} style={{padding:"6px 10px",background:T.btnBgActive,border:"none",borderRadius:6,color:T.accentText,fontSize:12,cursor:"pointer",fontFamily:"inherit"}}>✓</button>
                   </div>
                 ) : v.note ? (
                   <div style={{fontSize:12,color:T.accentText,marginTop:6,fontStyle:"italic",paddingLeft:2}}>💬 {v.note}</div>
@@ -171,7 +171,7 @@ export function DateModal({ T, park, dates, isJa, tx, onClose, onAdd, onDelete, 
               placeholder={isJa?"一言メモ（任意）...":"Add a note (optional)..."}
               style={{padding:"9px 12px",background:T.cardBg,border:`1px solid ${T.headerBorder}`,borderRadius:8,color:T.textPrimary,fontSize:16,outline:"none",fontFamily:"inherit"}}/>
             <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>{onAdd(inputDate,inputNote);setPicking(false);setInputNote("");}} style={{flex:1,padding:"9px 16px",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,borderRadius:8,color:T.chipTextActive,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>✓ {isJa?"追加":"Add"}</button>
+              <button onClick={()=>{onAdd(inputDate,inputNote);setPicking(false);setInputNote("");}} style={{flex:1,padding:"9px 16px",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,borderRadius:8,color:T.accentText,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>✓ {isJa?"追加":"Add"}</button>
               <button onClick={()=>{setPicking(false);setInputNote("");}} style={{padding:"9px 16px",background:"transparent",border:`1px solid ${T.inputBorder}`,borderRadius:8,color:T.mutedText,fontSize:13,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
             </div>
           </div>

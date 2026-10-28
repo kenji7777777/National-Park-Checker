@@ -63,3 +63,8 @@ export function parseImportedFile(text) {
   const activeId = profiles.some(p => p.id === data.activeId) ? data.activeId : profiles[0].id;
   return { ...data, activeId, profiles };
 }
+
+// rev16: onboarding and backup-reminder bookkeeping
+export const ONBOARD_KEY = "np_onboarded_v1";
+export const BACKUP_KEY  = "np_last_backup_v1";
+export const SNOOZE_KEY  = "np_backup_snooze_v1";

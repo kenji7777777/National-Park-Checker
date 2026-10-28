@@ -21,13 +21,13 @@ export function BadgeModal({ earnedIds, earnedTagIds, questProgress, isJa, tx, t
             padding:"6px 16px",borderRadius:20,fontSize:12,cursor:"pointer",fontFamily:"inherit",
             background:innerTab==="badges"?T.btnBgActive:"transparent",
             border:`1px solid ${innerTab==="badges"?T.btnBorderActive:T.cardBorder}`,
-            color:innerTab==="badges"?T.chipTextActive:T.mutedText,
+            color:innerTab==="badges"?T.accentText:T.mutedText,
           }}>🏅 {tx.badges} ({allEarnedCount}/{allBadgeCount})</button>
           <button onClick={()=>setInnerTab("quests")} style={{
             padding:"6px 16px",borderRadius:20,fontSize:12,cursor:"pointer",fontFamily:"inherit",
             background:innerTab==="quests"?T.btnBgActive:"transparent",
             border:`1px solid ${innerTab==="quests"?T.btnBorderActive:T.cardBorder}`,
-            color:innerTab==="quests"?T.chipTextActive:T.mutedText,
+            color:innerTab==="quests"?T.accentText:T.mutedText,
           }}>🗺 {tx.quests} ({questProgress.filter(q=>q.complete).length}/{questProgress.length})</button>
         </div>
 

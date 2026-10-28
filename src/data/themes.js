@@ -40,7 +40,7 @@ export const THEMES = {
     cardBg:"#dcc898", cardBgAlt:"#d4bc84", cardBorder:"#c8a868", cardBorderActive:"#8a3a2a",
     inputBg:"#f0e4c4", inputBorder:"#c8a868",
     chipBgActive:"#8a3a2a", chipBorderActive:"#5a2a1a", chipText:"#7a5a3a", chipTextActive:"#f0e4c4",
-    btnBgActive:"#8a3a2a", btnBorderActive:"#5a2a1a",
+    btnBgActive:"rgba(138,58,42,0.16)", btnBorderActive:"#8a3a2a",
     progressTrack:"#c8b078", progressFill:"linear-gradient(90deg,#c85a30,#e0803a)",
     mapBg:"#dcc898", mapBorder:"#8a3a2a", mapLand:"#d4bc84", mapLandBorder:"#8a3a2a",
     mapGrid:"#c8b078", mapStateLabel:"#8a5a3a", tooltipText:"#4a2a1a",

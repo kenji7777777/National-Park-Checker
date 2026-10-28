@@ -1,7 +1,7 @@
 // Service worker: keeps the app usable offline.
 // Pages are fetched network-first (so updates show up right away) and fall
 // back to the cached copy when offline. VERSION is set by build.mjs.
-const VERSION = "7edf2aa9f6";
+const VERSION = "8591a245b7";
 const CACHE = `natparks-${VERSION}`;
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon.svg", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
