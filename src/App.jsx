@@ -3,12 +3,14 @@ import { REGION_ORDER, parks } from "./data/parks";
 import { THEMES } from "./data/themes";
 import { BADGES, computeEarnedBadges, computeQuestProgress, computeTagBadges } from "./data/achievements";
 import { i18n } from "./i18n";
-import { formatDate, gmapUrl, npsUrl, today, uid } from "./utils";
+import { formatDate, today, uid } from "./utils";
 import { SVGMap } from "./components/SVGMap";
 import { TimelineView } from "./components/TimelineView";
-import { BadgeModal } from "./components/BadgeModal";
-import { StatsView } from "./components/StatsView";
-import { ConfirmDialog, DateModal, ProfileModal } from "./components/Dialogs";
+import { AwardsView } from "./components/AwardsView";
+import { ConfirmDialog } from "./components/Dialogs";
+import { ParkSheet } from "./components/ParkSheet";
+import { MenuSheet } from "./components/MenuSheet";
+import { BottomNav, NAV_H, ProgressHero } from "./components/Chrome";
 import { ShareCardModal } from "./components/ShareCardModal";
 import { BACKUP_KEY, LANG_KEY, ONBOARD_KEY, SNOOZE_KEY, THEME_KEY, exportStoreToFile, initStore, parseImportedFile, saveData } from "./storage";
 import { APP_CSS, ConfettiLayer, HelpModal, useCountUp, vibrate } from "./components/Delight";
@@ -36,13 +38,11 @@ export function App() {
   const [backupTick,    setBackupTick]    = useState(0);
   const toastTimer = useRef(null);
   const [showSortMenu,  setShowSortMenu]  = useState(false);
-  const [showBadges,    setShowBadges]    = useState(false);
   const [selectedPark,  setSelectedPark]  = useState(null);
-  const [dateModalPark, setDateModalPark] = useState(null);
+  const [sheetPark, setSheetPark] = useState(null);
   const [hoveredMapId,  setHoveredMapId]  = useState(null);
-  const [showProfiles,  setShowProfiles]  = useState(false);
+  const [showMenu,  setShowMenu]  = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
-  const [showThemePicker, setShowThemePicker] = useState(false);
   const [confirm,       setConfirm]       = useState(null); // { message, onConfirm }
   const parkRefs = useRef({});
 
@@ -84,6 +84,15 @@ export function App() {
   const questProgress = useMemo(() => computeQuestProgress(checked), [checked]);
 
   const shownTotal = useCountUp(totalChecked);
+  const stateCounts = useMemo(() => {
+    const all = new Set(), seen = new Set();
+    parks.forEach(p => p.state.split(" / ").forEach(st => { all.add(st); if (checked[p.id]) seen.add(st); }));
+    return { seen: seen.size, all: all.size };
+  }, [checked]);
+  const badgeEarnedCount = earnedBadges.length + earnedTagBadges.length;
+  const questDoneCount = questProgress.filter(q => q.complete).length;
+  const openPark = (park) => setSheetPark(park);
+  const showOnMap = (park) => { setSheetPark(null); setTab("map"); setSelectedPark(park); window.scrollTo({top:0}); };
   const nextMilestone = MILESTONES.find(m => m > totalChecked);
   const progressHint = totalChecked >= parks.length ? tx.allDone
     : totalChecked === 0 ? tx.startHint
@@ -186,11 +195,17 @@ export function App() {
     return {...prev,[id]:[...ex,{date,note}]};
   });
   const removeVisit=(id,date)=>setVisits(prev=>({...prev,[id]:(prev[id]??[]).filter(v=>v.date!==date)}));
-  const updateVisitNote=(id,date,note)=>setVisits(prev=>({...prev,[id]:(prev[id]??[]).map(v=>v.date===date?{...v,note}:v)}));
+  const updateVisit=(id,oldDate,newDate,note)=>setVisits(prev=>{
+    const list=prev[id]??[];
+    const clash=newDate!==oldDate&&list.some(v=>v.date===newDate);
+    return {...prev,[id]:list.map(v=>v.date===oldDate?{...v,date:clash?oldDate:newDate,note}:v)};
+  });
 
   const restoreVisits=(profileId,parkId,list)=>setStore(prev=>({...prev,profiles:prev.profiles.map(p=>p.id===profileId?{...p,visits:{...p.visits,[parkId]:list}}:p)}));
 
-  const toggleCheck=(park)=>{
+  const toggleCheck=(park, ev)=>{
+    const r = ev?.currentTarget?.getBoundingClientRect?.();
+    const origin = r ? { x: r.left + r.width/2, y: r.top + r.height/2 } : {};
     const parkName = isJa ? park.ja : park.name;
     const profileId = store.activeId;
     if(!checked[park.id]){
@@ -220,14 +235,14 @@ export function App() {
       }
 
       const big = gains.length > 0;
-      setBurst({ key: uid(), big });
+      setBurst({ key: uid(), big, ...origin });
       vibrate(big ? [30, 40, 70] : 18);
       if (big) setAchievements(a => [...a, ...gains.map(g => ({ ...g, id: uid() }))]);
       setPopId(park.id);
       setTimeout(() => setPopId(c => (c === park.id ? null : c)), 650);
       showToast({
         icon:"✅", text: tx.recorded(parkName, entry.date.slice(5).split("-").map(Number).join("/"), newTotal, parks.length),
-        actionLabel: tx.changeDate, onAction: () => { setDateModalPark(park); closeToast(); },
+        actionLabel: tx.changeDate, onAction: () => { setSheetPark(park); closeToast(); },
         secondaryLabel: tx.undo, onSecondary: () => { restoreVisits(profileId, park.id, visits[park.id] ?? []); closeToast(); },
       }, 6500);
     } else {
@@ -305,7 +320,7 @@ export function App() {
           onConfirm: () => {
             setStore(imported);
             setConfirm(null);
-            setShowProfiles(false);
+            setShowMenu(false);
           },
         });
       } catch {
@@ -315,239 +330,191 @@ export function App() {
     reader.readAsText(file);
   };
 
+  const changeTab = (key) => { setTab(key); setShowSortMenu(false); window.scrollTo({top:0}); };
   const S={
-    btn:(active)=>({minHeight:36,padding:"6px 18px",borderRadius:20,fontSize:13,cursor:"pointer",fontFamily:"inherit",background:active?T.btnBgActive:"transparent",border:`1px solid ${active?T.btnBorderActive:T.cardBorder}`,color:active?T.accentText:T.mutedText,transition:"all .2s"}),
-    chip:(active)=>({minHeight:36,padding:"6px 13px",borderRadius:20,fontSize:13,flexShrink:0,whiteSpace:"nowrap",cursor:"pointer",fontFamily:"inherit",background:active?T.chipBgActive:"transparent",border:`1px solid ${active?T.chipBorderActive:T.cardBorder}`,color:active?T.chipTextActive:T.chipText}),
-    link:(color,bg,border)=>({flex:1,padding:"7px 0",textAlign:"center",borderRadius:8,fontSize:10,background:bg,border:`1px solid ${border}`,color,textDecoration:"none",display:"block"}),
-    rowBtn:(color)=>({flex:1,padding:"11px 0",fontSize:12,cursor:"pointer",color,background:"transparent",border:"none",borderLeft:`1px solid ${T.cardBorder}`,fontFamily:"inherit"}),
+    chip:(active)=>({minHeight:36,padding:"6px 13px",borderRadius:18,fontSize:13,flexShrink:0,whiteSpace:"nowrap",cursor:"pointer",fontFamily:"inherit",background:active?T.chipBgActive:"transparent",border:`1px solid ${active?T.chipBorderActive:T.cardBorder}`,color:active?T.chipTextActive:T.chipText}),
+    icon:{width:42,height:42,borderRadius:21,display:"flex",alignItems:"center",justifyContent:"center",background:"transparent",border:`1px solid ${T.headerBorder}`,color:T.textSecondary,fontSize:18,cursor:"pointer",fontFamily:"inherit",flexShrink:0},
+    page:{maxWidth:700,margin:"0 auto",width:"100%",boxSizing:"border-box"},
   };
+  const filtering = search||statusFilter!=="all"||activeRegion!=="all";
+  const navBottom = (extra) => `calc(${NAV_H + extra}px + env(safe-area-inset-bottom))`;
 
   return (
-    <div style={{minHeight:"100vh",background:T.bg,fontFamily:isJa?"'Hiragino Sans','Noto Sans JP',sans-serif":T.fontBody,color:T.textPrimary,colorScheme:T.scheme,display:"flex",flexDirection:"column",transition:"background .3s ease","--np-glow":T.cardBorderActive}}>
+    <div style={{minHeight:"100vh",background:T.bg,fontFamily:isJa?"'Hiragino Sans','Noto Sans JP',sans-serif":T.fontBody,color:T.textPrimary,colorScheme:T.scheme,display:"flex",flexDirection:"column",
+      paddingBottom:navBottom(16),transition:"background .3s ease","--np-glow":T.cardBorderActive,"--np-press":T.inputBg}}>
       <style>{APP_CSS}</style>
 
-      {/* ── HEADER ── */}
-      <div style={{background:T.headerBg,borderBottom:`1px solid ${T.headerBorder}`,padding:"calc(16px + env(safe-area-inset-top)) 16px 14px",textAlign:"center",position:"relative"}}>
-        <div style={{position:"absolute",inset:0,backgroundImage:`radial-gradient(ellipse at 50% 0%,${T.chipBgActive}33,transparent 70%)`,pointerEvents:"none"}}/>
-
-        {/* Top bar: profile on the left, actions on the right */}
-        <div style={{position:"absolute",top:"calc(12px + env(safe-area-inset-top))",right:12,left:12,display:"flex",alignItems:"center",gap:6,zIndex:1}}>
-          <button onClick={()=>setShowProfiles(true)} aria-label={tx.profiles} className="np-press"
-            style={{minHeight:36,padding:"6px 12px",background:"transparent",border:`1px solid ${T.headerBorder}`,borderRadius:20,color:T.textSecondary,fontSize:13,cursor:"pointer",fontFamily:"inherit",minWidth:0,flexShrink:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-            👤 {activeProfile.name}
-          </button>
-          <div style={{flex:1}}/>
-          {totalChecked>0&&(
-            <button onClick={()=>setShowShareCard(true)} aria-label={isJa?"シェア":"Share"} className="np-press" style={{minHeight:36,minWidth:36,padding:"6px 10px",background:"transparent",border:`1px solid ${T.headerBorder}`,borderRadius:20,color:T.mutedText,fontSize:13,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>📤</button>
-          )}
-          <button onClick={()=>setShowThemePicker(true)} aria-label={isJa?"テーマ":"Theme"} className="np-press" style={{minHeight:36,minWidth:36,padding:"6px 10px",background:"transparent",border:`1px solid ${T.headerBorder}`,borderRadius:20,color:T.mutedText,fontSize:13,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
-            {T.label}
-          </button>
-          <button onClick={()=>setLang(l=>l==="en"?"ja":"en")} aria-label="Language" className="np-press" style={{minHeight:36,minWidth:36,padding:"6px 10px",background:"transparent",border:`1px solid ${T.headerBorder}`,borderRadius:20,color:T.mutedText,fontSize:13,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
-            {isJa?"EN":"日本語"}
-          </button>
-          <button onClick={()=>setShowBadges(true)} aria-label={tx.badges} className="np-press" style={{minHeight:36,minWidth:36,padding:"6px 10px",background:"transparent",border:`1px solid ${T.headerBorder}`,borderRadius:20,color:T.mutedText,fontSize:13,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>
-            🏅 {earnedBadges.length + earnedTagBadges.length}
-          </button>
-          <button onClick={()=>setShowHelp(true)} aria-label={tx.helpAria} className="np-press" style={{minHeight:36,minWidth:36,padding:"6px 10px",background:"transparent",border:`1px solid ${T.headerBorder}`,borderRadius:20,color:T.mutedText,fontSize:13,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>❓</button>
-        </div>
-
-        <div style={{fontSize:11,letterSpacing:"0.3em",color:T.mutedText,textTransform:"uppercase",marginBottom:4,marginTop:40}}>{tx.country}</div>
-        <h1 style={{margin:0,fontSize:"clamp(20px,5vw,28px)",fontWeight:400,color:T.textPrimary,lineHeight:1.2}}>{tx.title}</h1>
-
-        {/* Progress */}
-        <div style={{maxWidth:320,margin:"10px auto 0"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
-            <span style={{fontSize:12,color:T.textSecondary}}>{tx.visited}</span>
-            <span style={{fontSize:24,fontWeight:300,color:T.accentText}}>{shownTotal}<span style={{fontSize:14,color:T.mutedText}}>/{parks.length}</span></span>
+      {/* ── APP BAR ── */}
+      <header style={{background:T.headerBg,borderBottom:`1px solid ${T.headerBorder}`,padding:"calc(10px + env(safe-area-inset-top)) 16px 12px"}}>
+        <div style={{...S.page,display:"flex",alignItems:"center",gap:10}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:10,letterSpacing:"0.28em",color:T.mutedText,textTransform:"uppercase"}}>{tx.country}</div>
+            <h1 style={{margin:"2px 0 0",fontSize:20,fontWeight:400,color:T.textPrimary,lineHeight:1.2,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{tx.title}</h1>
+            <button onClick={()=>setShowMenu(true)} style={{marginTop:2,padding:0,background:"transparent",border:"none",color:T.textSecondary,fontSize:12,cursor:"pointer",fontFamily:"inherit",maxWidth:"100%",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>👤 {activeProfile.name} ▾</button>
           </div>
-          <div style={{height:6,background:T.progressTrack,borderRadius:3,overflow:"hidden"}}>
-            <div style={{position:"relative",overflow:"hidden",height:"100%",width:`${progress}%`,background:T.progressFill,borderRadius:3,transition:"width .7s cubic-bezier(.2,.8,.2,1)",boxShadow:progress>=100?"0 0 12px 2px #f5c542":"none"}}>
-              {progress>0&&progress<100&&<div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.38),transparent)",animation:"np-shimmer 2.6s ease-in-out infinite"}}/>}
-            </div>
-          </div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:8,marginTop:5,fontSize:11,color:T.mutedText}}>
-            <span style={{color:T.textSecondary,textAlign:"left"}}>{progressHint}</span><span>{progress}%</span>
-          </div>
+          {totalChecked>0&&<button onClick={()=>setShowShareCard(true)} aria-label={isJa?"シェア":"Share"} className="np-press" style={S.icon}>📤</button>}
+          <button onClick={()=>setShowMenu(true)} aria-label={tx.menu} className="np-press" style={{...S.icon,fontSize:20,color:T.accentText}}>☰</button>
         </div>
-
-        {/* Tabs */}
-        <div role="tablist" style={{display:"flex",justifyContent:"center",alignItems:"center",gap:6,marginTop:12,flexWrap:"wrap",rowGap:6}}>
-          <button role="tab" aria-selected={tab==="list"} style={S.btn(tab==="list")} onClick={()=>setTab("list")}>{tx.listTab}</button>
-          <button role="tab" aria-selected={tab==="map"} style={S.btn(tab==="map")}  onClick={()=>setTab("map")}>{tx.mapTab}</button>
-          <button role="tab" aria-selected={tab==="timeline"} style={S.btn(tab==="timeline")} onClick={()=>setTab("timeline")}>{tx.timelineTab}</button>
-          <button role="tab" aria-selected={tab==="stats"} style={S.btn(tab==="stats")} onClick={()=>setTab("stats")}>{tx.statsTab}</button>
-        </div>
-      </div>
-
-      {/* ── MAP TAB ── */}
-      {tab==="map"&&(
-        <div className="np-tab" style={{flex:1,display:"flex",flexDirection:"column"}}>
-          <div style={{padding:"8px 16px 2px",fontSize:11,color:T.mutedText,textAlign:"center"}}>
-            {tx.mapHint}
-          </div>
-          <SVGMap parks={parks} checked={checked} visits={visits} isJa={isJa} selectedId={selectedPark?.id} onParkClick={p=>setSelectedPark(s=>s?.id===p.id?null:p)} hoveredId={hoveredMapId} setHoveredId={setHoveredMapId} themeColors={T}/>
-          {selectedPark&&(
-            <div style={{margin:"0 12px 12px",background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:10,padding:"16px 18px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
-                <div>
-                  <div style={{fontSize:18,color:T.textPrimary,marginBottom:3,fontWeight:600}}>{selectedPark.emoji} {isJa?selectedPark.ja:selectedPark.name}</div>
-                  <div style={{fontSize:12,color:T.mutedText}}>{isJa?selectedPark.name:selectedPark.ja} · {isJa?selectedPark.stateJa:selectedPark.state}</div>
-                  {(visits[selectedPark.id]?.length??0)>0&&<div style={{fontSize:11,color:T.pinVisited,marginTop:4}}>✓ {tx.visits(visits[selectedPark.id].length)}</div>}
-                </div>
-                <button onClick={()=>toggleCheck(selectedPark)} style={{padding:"6px 14px",borderRadius:20,fontSize:12,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap",flexShrink:0,background:checked[selectedPark.id]?T.btnBgActive:"transparent",border:`1px solid ${checked[selectedPark.id]?T.btnBorderActive:T.cardBorder}`,color:checked[selectedPark.id]?T.accentText:T.mutedText}}>
-                  {checked[selectedPark.id]?"✓ "+tx.checkedLabel:tx.uncheckedLabel}
-                </button>
-              </div>
-              <div style={{display:"flex",gap:6,marginTop:14,flexWrap:"wrap"}}>
-                <a href={npsUrl(selectedPark)} target="_blank" rel="noopener noreferrer" style={{...S.link(T.accentText,T.cardBg,T.cardBorderActive),fontSize:12,padding:"8px 0"}}>🏛 {tx.npsLink}</a>
-                <a href={gmapUrl(selectedPark)} target="_blank" rel="noopener noreferrer" style={{...S.link(T.accentText,T.cardBg,T.cardBorderActive),fontSize:12,padding:"8px 0"}}>📍 {tx.gmapLink}</a>
-                <button onClick={()=>{setDateModalPark(selectedPark);setSelectedPark(null);}} style={{flex:1,padding:"8px 0",borderRadius:8,fontSize:12,cursor:"pointer",background:T.cardBg,border:`1px solid ${T.cardBorder}`,color:T.mutedText,fontFamily:"inherit"}}>📅 {isJa?"訪問日":"Dates"}</button>
-                <button onClick={()=>{scrollToPark(selectedPark.id);setSelectedPark(null);}} style={{flex:1,padding:"8px 0",borderRadius:8,fontSize:12,cursor:"pointer",background:T.cardBg,border:`1px solid ${T.cardBorder}`,color:T.mutedText,fontFamily:"inherit"}}>≡ {tx.listTab}</button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── TIMELINE TAB ── */}
-      {tab==="timeline"&&(
-        <div className="np-tab"><TimelineView parks={parks} visits={visits} isJa={isJa} themeColors={T} onParkClick={(park)=>{setTab("map");setSelectedPark(park);}}/></div>
-      )}
-
-      {/* ── STATS TAB ── */}
-      {tab==="stats"&&(
-        <div className="np-tab"><StatsView parks={parks} visits={visits} checked={checked} isJa={isJa} themeColors={T} tx={tx} onParkClick={(park)=>{setTab("map");setSelectedPark(park);}}/></div>
-      )}
+      </header>
 
       {/* ── LIST TAB ── */}
       {tab==="list"&&(
-        <div className="np-tab" style={{flex:1,display:"flex",flexDirection:"column"}}>
-          {/* Sticky search + filters so they stay reachable while scrolling the long list */}
-          <div style={{position:"sticky",top:0,zIndex:5,background:T.bg,borderBottom:`1px solid ${T.cardBorder}`,boxShadow:"0 8px 14px -12px rgba(0,0,0,.7)",paddingTop:"env(safe-area-inset-top)"}}>
-            <div style={{padding:"10px 16px 0",maxWidth:700,margin:"0 auto",width:"100%",boxSizing:"border-box",display:"flex",gap:8}}>
+        <main className="np-tab" style={{flex:1,display:"flex",flexDirection:"column"}}>
+          <div style={{...S.page,padding:"14px 16px 4px"}}>
+            <ProgressHero T={T} tx={tx} shown={shownTotal} total={parks.length} progress={progress} hint={progressHint}
+              stats={[{icon:"🏳️",value:`${stateCounts.seen}/${stateCounts.all}`,label:tx.statesShort},{icon:"🏅",value:badgeEarnedCount,label:tx.badgesShort},{icon:"🗺",value:questDoneCount,label:tx.questsShort}]}
+              onOpen={()=>changeTab("awards")}/>
+          </div>
+
+          {/* Sticky search + filters */}
+          <div style={{position:"sticky",top:0,zIndex:5,background:T.bg,paddingTop:"env(safe-area-inset-top)",borderBottom:`1px solid ${T.cardBorder}`,boxShadow:"0 8px 14px -12px rgba(0,0,0,.6)"}}>
+            <div style={{...S.page,padding:"10px 16px 0",display:"flex",gap:8}}>
               <div style={{position:"relative",flex:1,minWidth:0}}>
                 <input type="text" enterKeyHint="search" aria-label={tx.search} placeholder={`🔍 ${tx.search}`} value={search} onChange={e=>setSearch(e.target.value)}
-                  style={{width:"100%",padding:"10px 36px 10px 12px",background:T.inputBg,border:`1px solid ${T.inputBorder}`,borderRadius:8,color:T.textPrimary,fontSize:16,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
+                  style={{width:"100%",height:44,padding:"0 38px 0 14px",background:T.inputBg,border:`1px solid ${T.inputBorder}`,borderRadius:12,color:T.textPrimary,fontSize:16,outline:"none",boxSizing:"border-box",fontFamily:"inherit"}}/>
                 {search&&(
                   <button onClick={()=>setSearch("")} aria-label={tx.clearSearch}
-                    style={{position:"absolute",right:4,top:"50%",transform:"translateY(-50%)",width:32,height:32,borderRadius:16,border:"none",background:T.cardBg,color:T.mutedText,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+                    style={{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",width:32,height:32,borderRadius:16,border:"none",background:T.cardBg,color:T.mutedText,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
                 )}
               </div>
               <button onClick={pickRandom} aria-label={tx.randomBtn} title={tx.randomBtn} className="np-press"
-                style={{minWidth:44,padding:"0 10px",background:T.inputBg,border:`1px solid ${T.inputBorder}`,borderRadius:8,color:T.accentText,fontSize:18,cursor:"pointer",fontFamily:"inherit",flexShrink:0}}>🎲</button>
+                style={{width:44,height:44,background:T.inputBg,border:`1px solid ${T.inputBorder}`,borderRadius:12,fontSize:20,cursor:"pointer",flexShrink:0}}>🎲</button>
               <div style={{position:"relative",flexShrink:0}}>
-                <button onClick={()=>setShowSortMenu(s=>!s)} aria-label={tx.sortBy} className="np-press" style={{height:"100%",minWidth:44,padding:"0 10px",background:T.inputBg,border:`1px solid ${T.inputBorder}`,borderRadius:8,color:T.mutedText,fontSize:13,cursor:"pointer",fontFamily:"inherit",whiteSpace:"nowrap"}}>
-                  ⇅ {tx.sortBy}
-                </button>
+                <button onClick={()=>setShowSortMenu(s=>!s)} aria-label={tx.sortBy} aria-expanded={showSortMenu} className="np-press"
+                  style={{width:44,height:44,background:sortMode!=="az"?T.btnBgActive:T.inputBg,border:`1px solid ${sortMode!=="az"?T.btnBorderActive:T.inputBorder}`,borderRadius:12,color:sortMode!=="az"?T.accentText:T.mutedText,fontSize:18,cursor:"pointer",fontFamily:"inherit"}}>⇅</button>
                 {showSortMenu&&(
-                  <div style={{position:"absolute",top:"110%",right:0,background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:8,padding:6,zIndex:10,minWidth:170,boxShadow:"0 4px 16px rgba(0,0,0,.4)"}}>
+                  <div className="np-tab" style={{position:"absolute",top:"110%",right:0,background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:12,padding:6,zIndex:10,minWidth:190,boxShadow:"0 8px 24px rgba(0,0,0,.45)"}}>
+                    <div style={{fontSize:11,color:T.mutedText,padding:"6px 10px 4px"}}>{tx.sortBy}</div>
                     {[["az",tx.sortAZ],["dateDesc",tx.sortDateDesc],["dateAsc",tx.sortDateAsc],["unvisited",tx.sortUnvisited]].map(([key,label])=>(
-                      <div key={key} onClick={()=>{setSortMode(key);setShowSortMenu(false);}} style={{
-                        padding:"12px 12px",borderRadius:6,fontSize:14,cursor:"pointer",
-                        background:sortMode===key?T.btnBgActive:"transparent",
-                        color:sortMode===key?T.accentText:T.textPrimary,
-                      }}>{sortMode===key?"✓ ":""}{label}</div>
+                      <button key={key} onClick={()=>{setSortMode(key);setShowSortMenu(false);}} style={{display:"block",width:"100%",textAlign:"left",border:"none",
+                        padding:"12px 12px",borderRadius:8,fontSize:15,cursor:"pointer",fontFamily:"inherit",
+                        background:sortMode===key?T.btnBgActive:"transparent",color:sortMode===key?T.accentText:T.textPrimary}}>{sortMode===key?"✓ ":""}{label}</button>
                     ))}
                   </div>
                 )}
               </div>
             </div>
-            <div className="np-noscroll" role="group" aria-label={tx.statusFilter} style={{padding:"9px 16px 10px",maxWidth:700,margin:"0 auto",width:"100%",boxSizing:"border-box",display:"flex",gap:6,overflowX:"auto",flexWrap:"nowrap",alignItems:"center"}}>
+            <div className="np-noscroll" role="group" aria-label={tx.statusFilter} style={{...S.page,padding:"10px 16px",display:"flex",gap:6,overflowX:"auto",flexWrap:"nowrap",alignItems:"center"}}>
               {[["all",tx.filterAll,parks.length],["unvisited",tx.filterUnvisited,parks.length-totalChecked],["visited",tx.filterVisited,totalChecked]].map(([key,label,cnt])=>(
-                <button key={key} onClick={()=>setStatusFilter(key)} aria-pressed={statusFilter===key} className="np-press" style={S.chip(statusFilter===key)}>{label} <span style={{opacity:.6}}>({cnt})</span></button>
+                <button key={key} onClick={()=>setStatusFilter(key)} aria-pressed={statusFilter===key} className="np-press" style={S.chip(statusFilter===key)}>{label} <span style={{opacity:.65}}>{cnt}</span></button>
               ))}
-              <span aria-hidden="true" style={{width:1,alignSelf:"stretch",background:T.cardBorder,flexShrink:0,margin:"3px 3px"}}/>
+              <span aria-hidden="true" style={{width:1,alignSelf:"stretch",background:T.cardBorder,flexShrink:0,margin:"4px 2px"}}/>
               {[{key:"all",label:tx.allRegions},...regions].map(r=>{
                 const cnt=r.key==="all"?totalChecked:regionCount(r.key);
                 const total=r.key==="all"?parks.length:parks.filter(p=>p.region===r.key).length;
-                return <button key={r.key} onClick={()=>setActiveRegion(r.key)} aria-pressed={activeRegion===r.key} className="np-press" style={S.chip(activeRegion===r.key)}>{r.label} <span style={{opacity:.6}}>({cnt}/{total})</span></button>;
+                return <button key={r.key} onClick={()=>setActiveRegion(r.key)} aria-pressed={activeRegion===r.key} className="np-press" style={S.chip(activeRegion===r.key)}>{r.label} <span style={{opacity:.65}}>{cnt}/{total}</span></button>;
               })}
             </div>
           </div>
 
-          {/* Friendly first-run empty state */}
+          {/* First-run nudge */}
           {totalChecked===0&&(
-            <div style={{maxWidth:700,margin:"14px auto 0",padding:"0 16px",width:"100%",boxSizing:"border-box"}}>
-              <div style={{background:T.cardBgAlt,border:`1px dashed ${T.cardBorderActive}`,borderRadius:12,padding:"16px 16px 14px",textAlign:"center"}}>
+            <div style={{...S.page,padding:"12px 16px 0"}}>
+              <div style={{background:T.cardBgAlt,border:`1px dashed ${T.cardBorderActive}`,borderRadius:14,padding:"16px",textAlign:"center"}}>
                 <div style={{fontSize:28,marginBottom:4,animation:"np-bob 2.4s ease-in-out infinite"}}>🌲</div>
-                <div style={{fontSize:15,color:T.accentText,marginBottom:4}}>{tx.welcomeTitleList}</div>
+                <div style={{fontSize:16,color:T.accentText,marginBottom:4}}>{tx.welcomeTitleList}</div>
                 <div style={{fontSize:13,color:T.textSecondary,lineHeight:1.6,marginBottom:10}}>{tx.welcomeListBody}</div>
-                <button onClick={pickRandom} className="np-press" style={{minHeight:40,padding:"9px 18px",borderRadius:20,fontSize:13,cursor:"pointer",fontFamily:"inherit",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,color:T.accentText}}>🎲 {tx.randomBtn}</button>
+                <button onClick={pickRandom} className="np-press" style={{minHeight:44,padding:"10px 20px",borderRadius:22,fontSize:14,cursor:"pointer",fontFamily:"inherit",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,color:T.accentText}}>🎲 {tx.randomBtn}</button>
               </div>
             </div>
           )}
 
           {/* Backup reminder */}
           {showBackupNudge&&(
-            <div style={{maxWidth:700,margin:"12px auto 0",padding:"0 16px",width:"100%",boxSizing:"border-box"}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:10,padding:"10px 12px"}}>
-                <span style={{fontSize:18}}>💾</span>
-                <span style={{flex:1,minWidth:160,fontSize:13,color:T.textSecondary,lineHeight:1.5}}>{tx.backupNudge}</span>
-                <button onClick={handleExport} className="np-press" style={{minHeight:36,padding:"8px 14px",borderRadius:16,fontSize:13,cursor:"pointer",fontFamily:"inherit",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,color:T.accentText}}>{tx.backupNow}</button>
-                <button onClick={snoozeBackup} className="np-press" style={{minHeight:36,padding:"8px 10px",borderRadius:16,fontSize:13,cursor:"pointer",fontFamily:"inherit",background:"transparent",border:"none",color:T.mutedText}}>{tx.later}</button>
+            <div style={{...S.page,padding:"12px 16px 0"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:14,padding:"12px 14px"}}>
+                <span style={{fontSize:20}}>💾</span>
+                <span style={{flex:1,minWidth:170,fontSize:13,color:T.textSecondary,lineHeight:1.5}}>{tx.backupNudge}</span>
+                <button onClick={handleExport} className="np-press" style={{minHeight:40,padding:"8px 14px",borderRadius:20,fontSize:13,cursor:"pointer",fontFamily:"inherit",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,color:T.accentText}}>{tx.backupNow}</button>
+                <button onClick={snoozeBackup} style={{minHeight:40,padding:"8px 10px",borderRadius:20,fontSize:13,cursor:"pointer",fontFamily:"inherit",background:"transparent",border:"none",color:T.mutedText}}>{tx.later}</button>
               </div>
             </div>
           )}
 
-          <div style={{maxWidth:700,margin:"0 auto",padding:"0 16px 80px",width:"100%",boxSizing:"border-box"}}>
-            {(search||statusFilter!=="all"||activeRegion!=="all")&&filteredParks.length>0&&<div style={{fontSize:12,color:T.mutedText,padding:"10px 2px 6px"}}>{tx.resultCount(filteredParks.length,parks.length)}</div>}
-            {filteredParks.length===0&&<div style={{textAlign:"center",padding:"40px 16px",color:T.mutedText,fontSize:14}}>
-              <div style={{fontSize:28,marginBottom:6}}>🧭</div>{tx.notFound}
-              <div style={{marginTop:12}}><button onClick={()=>{setSearch("");setStatusFilter("all");setActiveRegion("all");}} className="np-press" style={{minHeight:40,padding:"8px 16px",borderRadius:16,fontSize:13,cursor:"pointer",fontFamily:"inherit",background:"transparent",border:`1px solid ${T.cardBorder}`,color:T.accentText}}>{tx.clearSearch} / {tx.all}</button></div>
-            </div>}
-            <div style={{display:"flex",flexDirection:"column",gap:1,paddingTop:(search||statusFilter!=="all"||activeRegion!=="all")?0:10}}>
-              {filteredParks.map((park,idx)=>{
-                const isCheckedP=checked[park.id], visitCount=visits[park.id]?.length??0;
+          {/* Park list */}
+          <div style={{...S.page,padding:"6px 12px 8px"}}>
+            {filtering&&filteredParks.length>0&&<div style={{fontSize:12,color:T.mutedText,padding:"6px 6px 2px"}}>{tx.resultCount(filteredParks.length,parks.length)}</div>}
+            {filteredParks.length===0&&(
+              <div style={{textAlign:"center",padding:"40px 16px",color:T.mutedText,fontSize:14}}>
+                <div style={{fontSize:30,marginBottom:6}}>🧭</div>{tx.notFound}
+                <div style={{marginTop:12}}><button onClick={()=>{setSearch("");setStatusFilter("all");setActiveRegion("all");}} className="np-press" style={{minHeight:44,padding:"8px 18px",borderRadius:22,fontSize:14,cursor:"pointer",fontFamily:"inherit",background:"transparent",border:`1px solid ${T.cardBorder}`,color:T.accentText}}>{tx.clearSearch} / {tx.all}</button></div>
+              </div>
+            )}
+            <div key={`${statusFilter}|${activeRegion}|${sortMode}`} className="np-tab" role="list" style={{display:"flex",flexDirection:"column",gap:6,paddingTop:6}}>
+              {filteredParks.map(park=>{
+                const isCheckedP=!!checked[park.id], visitCount=visits[park.id]?.length??0;
                 const latestVisit=visitCount>0?[...(visits[park.id])].sort((a,b)=>b.date.localeCompare(a.date))[0]:null;
-                const latestDate=latestVisit?.date;
                 return (
-                  <div key={park.id} ref={el=>parkRefs.current[park.id]=el}
-                    style={{position:"relative",background:isCheckedP?T.cardBgAlt:T.cardBg,borderLeft:`3px solid ${isCheckedP?T.cardBorderActive:T.cardBorder}`,borderRadius:2,opacity:isCheckedP?.85:1,"--np-o":isCheckedP?.85:1,animation:`np-rise .38s ease ${Math.min(idx*18,340)}ms backwards`}}>
-                    {flashId===park.id&&<div aria-hidden="true" style={{position:"absolute",inset:0,borderRadius:3,pointerEvents:"none",animation:"np-flash 1.2s ease 2"}}/>}
-                    <div onClick={()=>setDateModalPark(park)} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 14px 6px 4px",cursor:"pointer"}}>
-                      <button onClick={e=>{e.stopPropagation();toggleCheck(park);}} role="checkbox" aria-checked={!!isCheckedP} aria-label={isJa?park.ja:park.name}
-                        style={{width:44,height:44,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"transparent",border:"none",cursor:"pointer",padding:0}}>
-                        <span style={{width:24,height:24,border:`2px solid ${isCheckedP?T.cardBorderActive:T.mutedText}`,borderRadius:6,background:isCheckedP?T.btnBgActive:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,color:T.accentText,animation:popId===park.id?"np-pop .5s ease":"none",transition:"background .2s,border-color .2s"}}>
-                          {isCheckedP&&"✓"}
-                        </span>
-                      </button>
-                      <span style={{fontSize:17,flexShrink:0}}>{park.emoji}</span>
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:15,color:isCheckedP?T.accentText:T.textPrimary}}>{isJa?park.ja:park.name}</div>
-                        <div style={{fontSize:11,color:T.mutedText,marginTop:1}}>{isJa?park.name:park.ja} · {isJa?park.stateJa:park.state}</div>
-                        {latestDate&&<div style={{fontSize:11,color:T.mutedText,marginTop:3,display:"flex",alignItems:"center",gap:4}}>
-                          <span>📅 {formatDate(latestDate,isJa)}</span>
-                          {visitCount>1&&<span style={{color:T.accentText,background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:8,padding:"0 5px"}}>×{visitCount}</span>}
-                        </div>}
-                        {latestVisit?.note&&<div style={{fontSize:11,color:T.textSecondary,marginTop:3,fontStyle:"italic",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>💬 {latestVisit.note}</div>}
+                  <div key={park.id} role="listitem" ref={el=>parkRefs.current[park.id]=el} className="np-row" onClick={()=>openPark(park)}
+                    style={{position:"relative",display:"flex",alignItems:"center",gap:6,padding:"4px 10px 4px 2px",minHeight:64,cursor:"pointer",borderRadius:14,
+                      background:isCheckedP?T.cardBgAlt:T.cardBg,border:`1px solid ${isCheckedP?T.cardBorderActive:T.cardBorder}`}}>
+                    {flashId===park.id&&<div aria-hidden="true" style={{position:"absolute",inset:0,borderRadius:14,pointerEvents:"none",animation:"np-flash 1.2s ease 2"}}/>}
+                    <button onClick={e=>{e.stopPropagation();toggleCheck(park,e);}} role="checkbox" aria-checked={isCheckedP} aria-label={isJa?park.ja:park.name}
+                      style={{width:48,height:52,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",background:"transparent",border:"none",cursor:"pointer",padding:0}}>
+                      <span style={{width:26,height:26,border:`2px solid ${isCheckedP?T.btnBorderActive:T.mutedText}`,borderRadius:8,background:isCheckedP?T.btnBgActive:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,color:T.accentText,
+                        animation:popId===park.id?"np-pop .5s ease":"none",transition:"background .2s,border-color .2s"}}>{isCheckedP&&"✓"}</span>
+                    </button>
+                    <span style={{fontSize:24,flexShrink:0,width:30,textAlign:"center"}}>{park.emoji}</span>
+                    <div style={{flex:1,minWidth:0,paddingLeft:4}}>
+                      <div style={{fontSize:16,color:isCheckedP?T.accentText:T.textPrimary,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{isJa?park.ja:park.name}</div>
+                      <div style={{fontSize:12,color:T.mutedText,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        {latestVisit
+                          ? <>📅 {formatDate(latestVisit.date,isJa)}{visitCount>1&&<span style={{color:T.accentText}}> ×{visitCount}</span>} · {isJa?park.stateJa:park.state}</>
+                          : <>{isJa?park.name:park.ja} · {isJa?park.stateJa:park.state}</>}
                       </div>
-                      {activeRegion==="all"&&<span style={{fontSize:10,color:T.mutedText,background:T.inputBg,border:`1px solid ${T.cardBorder}`,borderRadius:10,padding:"2px 7px",flexShrink:0,whiteSpace:"nowrap"}}>{isJa?park.regionJa:park.region}</span>}
+                      {latestVisit?.note&&<div style={{fontSize:12,color:T.textSecondary,marginTop:2,fontStyle:"italic",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>💬 {latestVisit.note}</div>}
                     </div>
-                    <div style={{display:"flex",borderTop:`1px solid ${T.cardBorder}`}}>
-                      <a href={npsUrl(park)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{flex:1,padding:"11px 0",textAlign:"center",fontSize:12,color:T.accentText,textDecoration:"none",borderRight:`1px solid ${T.cardBorder}`,whiteSpace:"nowrap"}}>🏛 {tx.npsLink}</a>
-                      <a href={gmapUrl(park)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{flex:1,padding:"11px 0",textAlign:"center",fontSize:12,color:T.accentText,textDecoration:"none",borderRight:`1px solid ${T.cardBorder}`,whiteSpace:"nowrap"}}>📍 {tx.gmapLink}</a>
-                      <button onClick={e=>{e.stopPropagation();setTab("map");setSelectedPark(park);}} style={{...S.rowBtn(T.mutedText),borderLeft:"none",whiteSpace:"nowrap"}}>🗺 {tx.showOnMap}</button>
-                    </div>
+                    <span aria-hidden="true" style={{fontSize:20,color:T.mutedText,flexShrink:0}}>›</span>
                   </div>
                 );
               })}
             </div>
           </div>
-        </div>
+        </main>
       )}
 
-      {/* Floating badge */}
-      {totalChecked>0&&!toast&&(
-        <div style={{position:"fixed",bottom:"calc(16px + env(safe-area-inset-bottom))",right:12,background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:50,padding:"6px 12px",fontSize:11,color:T.accentText,boxShadow:"0 4px 16px rgba(0,0,0,.4)",pointerEvents:"none",opacity:0.9}}>
-          {tx.badge(totalChecked)}
-        </div>
+      {/* ── MAP TAB ── */}
+      {tab==="map"&&(
+        <main className="np-tab" style={{flex:1,display:"flex",flexDirection:"column",paddingTop:10}}>
+          <div style={{padding:"0 16px 6px",fontSize:12,color:T.mutedText,textAlign:"center"}}>{tx.mapHint}</div>
+          <SVGMap parks={parks} checked={checked} visits={visits} isJa={isJa} selectedId={selectedPark?.id} onParkClick={p=>setSelectedPark(s=>s?.id===p.id?null:p)} hoveredId={hoveredMapId} setHoveredId={setHoveredMapId} themeColors={T}>
+          {selectedPark&&(
+            <div key={selectedPark.id} className="np-tab" style={{margin:"0",background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:16,padding:"14px 14px 12px",boxShadow:"0 6px 20px rgba(0,0,0,.3)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:12}}>
+                <span style={{fontSize:30}}>{selectedPark.emoji}</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:17,color:T.textPrimary}}>{isJa?selectedPark.ja:selectedPark.name}</div>
+                  <div style={{fontSize:12,color:T.mutedText,marginTop:2}}>{isJa?selectedPark.stateJa:selectedPark.state}{checked[selectedPark.id]&&<span style={{color:T.accentText}}> · ✓ {tx.visits(visits[selectedPark.id].length)}</span>}</div>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:8,marginTop:12}}>
+                {!checked[selectedPark.id]&&(
+                  <button onClick={(e)=>toggleCheck(selectedPark,e)} className="np-press" style={{flex:1,minHeight:44,borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:"inherit",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,color:T.accentText}}>✓ {tx.checkIn}</button>
+                )}
+                <button onClick={()=>openPark(selectedPark)} className="np-press" style={{flex:1,minHeight:44,borderRadius:12,fontSize:14,cursor:"pointer",fontFamily:"inherit",background:"transparent",border:`1px solid ${T.cardBorderActive}`,color:T.accentText}}>{tx.details} ›</button>
+              </div>
+            </div>
+          )}
+          </SVGMap>
+        </main>
+      )}
+
+      {/* ── JOURNAL TAB ── */}
+      {tab==="timeline"&&(
+        <main className="np-tab"><TimelineView parks={parks} visits={visits} isJa={isJa} themeColors={T} onParkClick={openPark}/></main>
+      )}
+
+      {/* ── AWARDS TAB ── */}
+      {tab==="awards"&&(
+        <main className="np-tab">
+          <AwardsView T={T} tx={tx} isJa={isJa} visits={visits} checked={checked} earnedIds={earnedBadges} earnedTagIds={earnedTagBadges} questProgress={questProgress} onParkClick={openPark}/>
+        </main>
       )}
 
       {/* Back to top */}
       {showTop&&tab==="list"&&!toast&&(
         <button onClick={()=>window.scrollTo({top:0,behavior:"smooth"})} aria-label={tx.scrollTop} className="np-press"
-          style={{position:"fixed",right:12,bottom:"calc(58px + env(safe-area-inset-bottom))",width:44,height:44,borderRadius:22,background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,color:T.accentText,fontSize:18,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,.45)",animation:"np-fade .2s ease both",zIndex:50,fontFamily:"inherit"}}>↑</button>
+          style={{position:"fixed",right:14,bottom:navBottom(14),width:46,height:46,borderRadius:23,background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,color:T.accentText,fontSize:18,cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,.45)",animation:"np-fade .2s ease both",zIndex:50,fontFamily:"inherit"}}>↑</button>
       )}
 
       {/* Celebration layers */}
@@ -555,8 +522,8 @@ export function App() {
       {achievements.length>0&&(
         <div key={achievements[0].id} role="status" aria-live="polite"
           style={{position:"fixed",top:"calc(12px + env(safe-area-inset-top))",left:"50%",width:"min(92vw,380px)",zIndex:3600,pointerEvents:"none",animation:"np-banner 3.4s ease both"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12,background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:14,padding:"12px 16px",boxShadow:`0 10px 30px rgba(0,0,0,.55), 0 0 22px ${T.cardBorderActive}66`}}>
-            <span style={{fontSize:34,lineHeight:1}}>{achievements[0].icon}</span>
+          <div style={{display:"flex",alignItems:"center",gap:12,background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:16,padding:"12px 16px",boxShadow:`0 10px 30px rgba(0,0,0,.55), 0 0 22px ${T.cardBorderActive}66`}}>
+            <span style={{fontSize:36,lineHeight:1,animation:"np-pop .6s ease"}}>{achievements[0].icon}</span>
             <div style={{minWidth:0,flex:1}}>
               <div style={{fontSize:15,color:T.accentText,fontWeight:600}}>{achievements[0].title}</div>
               <div style={{fontSize:13,color:T.textPrimary,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{achievements[0].sub}</div>
@@ -566,56 +533,45 @@ export function App() {
         </div>
       )}
 
-      {/* Toast: "recorded" / "unchecked" / info, with up to two actions */}
+      {/* Toast */}
       {toast&&(
         <div key={toast.id} role="status" aria-live="polite"
-          style={{position:"fixed",left:12,right:12,bottom:"calc(12px + env(safe-area-inset-bottom))",maxWidth:500,margin:"0 auto",zIndex:3500,animation:"np-fade .25s ease both",background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:14,padding:"8px 6px 8px 12px",display:"flex",alignItems:"center",gap:8,boxShadow:"0 8px 28px rgba(0,0,0,.55)",fontSize:13,color:T.textPrimary}}>
+          style={{position:"fixed",left:12,right:12,bottom:navBottom(10),maxWidth:520,margin:"0 auto",zIndex:1000,animation:"np-pagein .25s ease both",background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:16,padding:"8px 6px 8px 12px",display:"flex",alignItems:"center",gap:8,boxShadow:"0 8px 28px rgba(0,0,0,.55)",fontSize:13,color:T.textPrimary}}>
           <span style={{fontSize:16,flexShrink:0}}>{toast.icon}</span>
           <span style={{flex:1,minWidth:0,lineHeight:1.4}}>{toast.text}</span>
           {toast.actionLabel&&(
             <button onClick={toast.onAction} className="np-press"
-              style={{flexShrink:0,minHeight:36,padding:"6px 10px",borderRadius:10,fontSize:12,cursor:"pointer",fontFamily:"inherit",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,color:T.accentText,whiteSpace:"nowrap"}}>{toast.actionLabel}</button>
+              style={{flexShrink:0,minHeight:38,padding:"6px 10px",borderRadius:12,fontSize:12,cursor:"pointer",fontFamily:"inherit",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,color:T.accentText,whiteSpace:"nowrap"}}>{toast.actionLabel}</button>
           )}
           {toast.secondaryLabel&&(
             <button onClick={toast.onSecondary} className="np-press"
-              style={{flexShrink:0,minHeight:36,padding:"6px 10px",borderRadius:10,fontSize:12,cursor:"pointer",fontFamily:"inherit",background:"transparent",border:`1px solid ${T.cardBorder}`,color:T.mutedText,whiteSpace:"nowrap"}}>{toast.secondaryLabel}</button>
+              style={{flexShrink:0,minHeight:38,padding:"6px 10px",borderRadius:12,fontSize:12,cursor:"pointer",fontFamily:"inherit",background:"transparent",border:`1px solid ${T.cardBorder}`,color:T.mutedText,whiteSpace:"nowrap"}}>{toast.secondaryLabel}</button>
           )}
           {!toast.secondaryLabel&&(
             <button onClick={closeToast} aria-label={isJa?"閉じる":"Close"}
-              style={{flexShrink:0,width:32,height:32,borderRadius:16,border:"none",background:"transparent",color:T.mutedText,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
+              style={{flexShrink:0,width:36,height:36,borderRadius:18,border:"none",background:"transparent",color:T.mutedText,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>✕</button>
           )}
         </div>
       )}
 
-      {/* Modals */}
+      {/* Bottom navigation */}
+      <BottomNav T={T} active={tab} onChange={changeTab} items={[
+        {key:"list",icon:"📋",label:tx.listTab},
+        {key:"map",icon:"🗺",label:tx.mapTab},
+        {key:"timeline",icon:"📖",label:tx.timelineTab},
+        {key:"awards",icon:"🏅",label:tx.awardsTab},
+      ]}/>
+
+      {/* Sheets & dialogs */}
       {showHelp&&<HelpModal tx={tx} themeColors={T} firstRun={firstRunHelp} onClose={closeHelp}/>}
-      {dateModalPark&&<DateModal T={T} park={dateModalPark} dates={visits[dateModalPark.id]??[]} isJa={isJa} tx={tx} onClose={()=>setDateModalPark(null)} onAdd={(date,note)=>addVisit(dateModalPark.id,date,note)} onDelete={date=>removeVisit(dateModalPark.id,date)} onUpdateNote={(date,note)=>updateVisitNote(dateModalPark.id,date,note)}/>}
-      {showProfiles&&<ProfileModal T={T} onReset={totalChecked>0?()=>{setShowProfiles(false);resetAll();}:null} profiles={store.profiles} activeId={store.activeId} onSwitch={switchProfile} onCreate={createProfile} onRename={renameProfile} onDelete={deleteProfile} onClose={()=>setShowProfiles(false)} tx={tx} isJa={isJa} onExport={handleExport} onImport={handleImport}/>}
+      {sheetPark&&<ParkSheet key={sheetPark.id} T={T} tx={tx} isJa={isJa} park={sheetPark} dates={visits[sheetPark.id]??[]} visited={!!checked[sheetPark.id]}
+        onToggle={toggleCheck} onAdd={(date,note)=>addVisit(sheetPark.id,date,note)} onDelete={date=>removeVisit(sheetPark.id,date)}
+        onUpdate={(oldDate,newDate,note)=>updateVisit(sheetPark.id,oldDate,newDate,note)} onShowMap={showOnMap} onClose={()=>setSheetPark(null)}/>}
+      {showMenu&&<MenuSheet T={T} tx={tx} isJa={isJa} profiles={store.profiles} activeId={store.activeId} siteTheme={siteTheme} lang={lang}
+        onSwitch={switchProfile} onCreate={createProfile} onRename={renameProfile} onDelete={deleteProfile}
+        onTheme={setSiteTheme} onLang={setLang} onHelp={()=>{setShowMenu(false);setShowHelp(true);}}
+        onExport={handleExport} onImport={handleImport} onReset={totalChecked>0?()=>{setShowMenu(false);resetAll();}:null} onClose={()=>setShowMenu(false)}/>}
       {showShareCard&&<ShareCardModal T={T} profile={activeProfile} visits={visits} checked={checked} isJa={isJa} tx={tx} earnedBadgeIds={earnedBadges} earnedTagIds={earnedTagBadges} questProgress={questProgress} onClose={()=>setShowShareCard(false)}/>}
-      {showBadges&&<BadgeModal earnedIds={earnedBadges} earnedTagIds={earnedTagBadges} questProgress={questProgress} checked={checked} isJa={isJa} tx={tx} themeColors={T} onParkClick={(park)=>{setTab("map");setSelectedPark(park);setShowBadges(false);}} onClose={()=>setShowBadges(false)}/>}
-      {showThemePicker&&(
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.75)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2000}} onClick={()=>setShowThemePicker(false)}>
-          <div onClick={e=>e.stopPropagation()} style={{background:T.cardBgAlt,border:`1px solid ${T.headerBorder}`,borderRadius:"16px 16px 0 0",width:"100%",maxWidth:500,padding:"20px 20px calc(32px + env(safe-area-inset-bottom))"}}>
-            <div style={{width:36,height:4,background:T.cardBorder,borderRadius:2,margin:"0 auto 16px"}}/>
-            <div style={{fontSize:16,color:T.accentText,marginBottom:16,textAlign:"center"}}>{isJa?"サイトのテーマ":"Site Theme"}</div>
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              {Object.entries(THEMES).map(([key,theme])=>(
-                <button key={key} onClick={()=>{setSiteTheme(key);setShowThemePicker(false);}} style={{
-                  display:"flex",alignItems:"center",gap:12,padding:"14px 16px",borderRadius:10,cursor:"pointer",fontFamily:"inherit",textAlign:"left",
-                  background:siteTheme===key?T.btnBgActive:T.cardBg,
-                  border:`1px solid ${siteTheme===key?T.btnBorderActive:T.cardBorder}`,
-                }}>
-                  <span style={{fontSize:22}}>{theme.label}</span>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:14,color:siteTheme===key?T.accentText:T.textPrimary}}>{isJa?theme.nameJa:theme.name}</div>
-                  </div>
-                  {siteTheme===key&&<span style={{color:T.accentText,fontSize:16}}>✓</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
       {confirm&&<ConfirmDialog T={T} message={confirm.message} onConfirm={confirm.onConfirm} onCancel={()=>setConfirm(null)} tx={tx}/>}
     </div>
   );

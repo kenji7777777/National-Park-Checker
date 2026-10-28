@@ -3,7 +3,7 @@
 - Published with GitHub Pages from the `main` branch; the page is `index.html`.
 - `index.html` is a build output. Edit the source, then rebuild:
   - `src/main.jsx` — entry; `src/App.jsx` — main screen and state
-  - `src/components/` — map, timeline, stats, badges, share card, dialogs; `Delight.jsx` — animations, confetti, help/onboarding
+  - `src/components/` — `Chrome.jsx` (bottom tab bar, progress hero), `ParkSheet.jsx` (park details + visits), `MenuSheet.jsx` (profiles, theme, language, backup), `AwardsView.jsx` (badges/quests + `StatsView`), `SVGMap.jsx`, `TimelineView.jsx`, `ShareCardModal.jsx`, `Sheet.jsx` (bottom-sheet wrapper), `Delight.jsx` (animations, confetti, help/onboarding)
   - `src/data/` — parks, themes, badges/quests; `src/i18n.js` — EN/JA strings (add both)
   - `src/storage.js` — localStorage, import/export; `src/utils.js` — helpers
   - `src/index.template.html` — the page shell (styles, boot/offline scripts)

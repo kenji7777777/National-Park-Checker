@@ -7,7 +7,7 @@ const TAP_RADIUS_PX = 24;   // a tap selects the nearest pin within this many sc
 const DRAG_THRESHOLD_PX = 6; // movement beyond this is a pan, not a tap
 const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
 
-export function SVGMap({ parks, checked, visits, isJa, onParkClick, hoveredId, setHoveredId, themeColors, selectedId }) {
+export function SVGMap({ parks, checked, visits, isJa, onParkClick, hoveredId, setHoveredId, themeColors, selectedId, children }) {
   const T = themeColors;
   const [zoom, setZoom] = useState(1);
   const [pan,  setPan]  = useState({x:0,y:0});
@@ -228,6 +228,9 @@ export function SVGMap({ parks, checked, visits, isJa, onParkClick, hoveredId, s
           {isJa?"未訪問":"Not yet"}
         </span>
       </div>
+
+      {/* Selected-park card (rendered by the parent) sits right under the map */}
+      {children}
 
       {/* Territories (too far away to draw on the map) */}
       <div style={{background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:8,padding:"6px 12px"}}>

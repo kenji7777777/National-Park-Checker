@@ -29,7 +29,7 @@ export function StatsView({ parks, visits, checked, isJa, themeColors, tx, onPar
   const sortedTrips = [...trips].sort((a,b)=>b.count-a.count).slice(0,5);
 
   return (
-    <div style={{flex:1,padding:"16px 20px 80px",maxWidth:700,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
+    <div style={{flex:1,padding:"4px 16px 24px",maxWidth:700,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
 
       {/* ── Streak highlight card ── */}
       <div style={{background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:14,padding:"20px",marginBottom:20,textAlign:"center"}}>
