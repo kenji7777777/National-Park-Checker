@@ -78,7 +78,7 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
       { id: "five_parks", threshold: 5 },
       { id: "fifteen_parks", threshold: 15 },
       { id: "thirty_parks", threshold: 30 },
-      { id: "all_parks", threshold: 63 },
+      { id: "all_parks", threshold: parks.length },
     ];
     const nextMilestone = milestones.find(m => totalChecked < m.threshold && !earnedBadgeIds.includes(m.id));
     if (nextMilestone) {
@@ -112,14 +112,14 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
       pool = isJa
         ? ["ベテラン国立公園マスター", "地図の大半を制覇", "自然と共に生きる者", "本物の探検家"]
         : ["Park Veteran", "Nature's Regular", "Seasoned Adventurer", "Trail Master"];
-    } else if (n < 63) {
+    } else if (n < parks.length) {
       pool = isJa
         ? ["伝説のパークマスター", "残すはあと少し", "国立公園の生き字引", "頂点を目指す者"]
         : ["Legendary Park Master", "So close to it all", "Almost Everywhere", "Elite Explorer"];
     } else {
       pool = isJa
-        ? ["全63公園制覇！殿堂入り", "アメリカ国立公園グランドマスター", "伝説となった旅人"]
-        : ["ALL 63 PARKS — Hall of Fame", "National Parks Grand Master", "The Complete Journey"];
+        ? [`全${parks.length}公園制覇！殿堂入り`, "アメリカ国立公園グランドマスター", "伝説となった旅人"]
+        : [`ALL ${parks.length} PARKS — Hall of Fame`, "National Parks Grand Master", "The Complete Journey"];
     }
     return pool[Math.floor(Math.random() * pool.length)];
   }, [totalChecked, isJa]);

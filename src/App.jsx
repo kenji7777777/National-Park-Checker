@@ -15,7 +15,7 @@ import { ShareCardModal } from "./components/ShareCardModal";
 import { BACKUP_KEY, LANG_KEY, ONBOARD_KEY, SNOOZE_KEY, THEME_KEY, exportStoreToFile, initStore, parseImportedFile, saveData } from "./storage";
 import { APP_CSS, ConfettiLayer, HelpModal, useCountUp, vibrate } from "./components/Delight";
 
-const MILESTONES = [5, 10, 15, 20, 30, 40, 50, 63];
+const MILESTONES = [5, 10, 15, 20, 30, 40, 50, parks.length];
 
 // ── Main App ──────────────────────────────────────────────────────
 export function App() {
