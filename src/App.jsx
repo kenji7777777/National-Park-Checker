@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "./react.js";
 import { REGION_ORDER, parks } from "./data/parks";
 import { THEMES } from "./data/themes";
-import { BADGES, computeEarnedBadges, computeQuestProgress, computeTagBadges } from "./data/achievements";
+import { BADGES, TAG_BADGES, computeEarnedBadges, computeQuestProgress, computeTagBadges } from "./data/achievements";
 import { i18n } from "./i18n";
-import { formatDate, today, uid } from "./utils";
+import { distanceKm, formatDate, normalizeSearch, today, uid } from "./utils";
 import { SVGMap } from "./components/SVGMap";
 import { TimelineView } from "./components/TimelineView";
 import { AwardsView } from "./components/AwardsView";
@@ -25,8 +25,9 @@ export function App() {
   const [tab,           setTab]           = useState("list");
   const [activeRegion,  setActiveRegion]  = useState("all");
   const [search,        setSearch]        = useState("");
-  const [sortMode,      setSortMode]      = useState("az"); // az | dateDesc | dateAsc | unvisited
-  const [statusFilter,  setStatusFilter]  = useState("all"); // all | unvisited | visited
+  const [sortMode,      setSortMode]      = useState("az"); // az | dateDesc | dateAsc | unvisited | near
+  const [statusFilter,  setStatusFilter]  = useState("all"); // all | unvisited | visited | wish
+  const [here,          setHere]          = useState(null);  // { lat, lng } for "nearest first"
   const [toast,         setToast]         = useState(null);  // { id, icon, text, actionLabel, onAction, secondaryLabel, onSecondary }
   const [achievements,  setAchievements]  = useState([]);    // queue of { id, icon, title, sub }
   const [burst,         setBurst]         = useState(null);  // { key, big }
@@ -58,6 +59,7 @@ export function App() {
 
   const activeProfile = store.profiles.find(p=>p.id===store.activeId) || store.profiles[0];
   const visits = activeProfile.visits;
+  const wish = useMemo(() => new Set(activeProfile.wish || []), [activeProfile.wish]);
 
   const setVisits = (updater) => {
     setStore(prev => {
@@ -153,7 +155,7 @@ export function App() {
   }),[isJa]);
 
   const filteredParks = useMemo(()=>{
-    const q=search.toLowerCase();
+    const q=normalizeSearch(search);
     const getLatestDate = (id) => {
       const arr = visits[id];
       if (!arr || arr.length === 0) return null;
@@ -161,8 +163,9 @@ export function App() {
     };
     return parks.filter(p=>{
       const matchRegion=activeRegion==="all"||p.region===activeRegion;
-      const matchSearch=!search||p.name.toLowerCase().includes(q)||p.ja.includes(search)||p.state.toLowerCase().includes(q)||p.stateJa.includes(search);
-      const matchStatus=statusFilter==="all"||(statusFilter==="visited")===!!checked[p.id];
+      const hay=[p.name,p.ja,p.state,p.stateJa,p.regionJa,...(visits[p.id]||[]).map(v=>v.note)];
+      const matchSearch=!q||hay.some(h=>normalizeSearch(h).includes(q));
+      const matchStatus=statusFilter==="all"||(statusFilter==="wish"?wish.has(p.id):(statusFilter==="visited")===!!checked[p.id]);
       return matchRegion&&matchSearch&&matchStatus;
     }).sort((a,b)=>{
       if (sortMode === "az") return a.name.localeCompare(b.name,"en",{sensitivity:"base"});
@@ -178,6 +181,9 @@ export function App() {
         if (!da) return 1; if (!db) return -1;
         return da.localeCompare(db);
       }
+      if (sortMode === "near" && here) {
+        return distanceKm(here.lat,here.lng,a.lat,a.lng) - distanceKm(here.lat,here.lng,b.lat,b.lng);
+      }
       if (sortMode === "unvisited") {
         const ca = checked[a.id]?1:0, cb = checked[b.id]?1:0;
         if (ca !== cb) return ca - cb;
@@ -185,7 +191,7 @@ export function App() {
       }
       return 0;
     });
-  },[activeRegion,search,sortMode,statusFilter,visits,checked]);
+  },[activeRegion,search,sortMode,statusFilter,visits,checked,wish,here]);
 
   const regionCount=(key)=>parks.filter(p=>p.region===key&&checked[p.id]).length;
 
@@ -195,11 +201,37 @@ export function App() {
     return {...prev,[id]:[...ex,{date,note}]};
   });
   const removeVisit=(id,date)=>setVisits(prev=>({...prev,[id]:(prev[id]??[]).filter(v=>v.date!==date)}));
-  const updateVisit=(id,oldDate,newDate,note)=>setVisits(prev=>{
-    const list=prev[id]??[];
-    const clash=newDate!==oldDate&&list.some(v=>v.date===newDate);
-    return {...prev,[id]:list.map(v=>v.date===oldDate?{...v,date:clash?oldDate:newDate,note}:v)};
-  });
+  const updateVisit=(id,oldDate,newDate,note)=>{
+    const clash=newDate!==oldDate&&(visits[id]??[]).some(v=>v.date===newDate);
+    if (clash) showToast({ icon:"⚠️", text: tx.dateExists(formatDate(newDate,isJa)) });
+    setVisits(prev=>({...prev,[id]:(prev[id]??[]).map(v=>v.date===oldDate?{...v,date:clash?oldDate:newDate,note}:v)}));
+  };
+  const addVisitChecked=(id,date,note)=>{
+    if ((visits[id]??[]).some(v=>v.date===date)) { showToast({ icon:"⚠️", text: tx.dateExists(formatDate(date,isJa)) }); return; }
+    addVisit(id,date,note);
+  };
+  const toggleWish=(park)=>{
+    const on=!wish.has(park.id);
+    setStore(prev=>({...prev,profiles:prev.profiles.map(p=>p.id===prev.activeId?{...p,wish:on?[...(p.wish||[]),park.id]:(p.wish||[]).filter(x=>x!==park.id)}:p)}));
+    vibrate(10);
+    showToast({ icon:on?"⭐":"☆", text: on?tx.wishAdded(isJa?park.ja:park.name):tx.wishRemoved(isJa?park.ja:park.name) }, 3000);
+  };
+  // 📍 Nearest-first sort: ask for the location once, then sort by distance
+  const sortNearest=()=>{
+    setShowSortMenu(false);
+    if (!navigator.geolocation) { showToast({ icon:"📍", text: tx.locationError }); return; }
+    showToast({ icon:"📍", text: tx.locating }, 8000);
+    navigator.geolocation.getCurrentPosition(
+      pos => { setHere({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setSortMode("near"); closeToast(); },
+      () => showToast({ icon:"📍", text: tx.locationError }),
+      { enableHighAccuracy:false, timeout:10000, maximumAge:600000 }
+    );
+  };
+  const distLabel=(p)=>{
+    if (!here) return "";
+    const km=distanceKm(here.lat,here.lng,p.lat,p.lng);
+    return isJa ? `約${km<10?km.toFixed(1):Math.round(km).toLocaleString()} km` : `${Math.round(km*0.621371).toLocaleString()} mi`;
+  };
 
   const restoreVisits=(profileId,parkId,list)=>setStore(prev=>({...prev,profiles:prev.profiles.map(p=>p.id===profileId?{...p,visits:{...p.visits,[parkId]:list}}:p)}));
 
@@ -211,33 +243,11 @@ export function App() {
     if(!checked[park.id]){
       // One tap on the checkbox = recorded with today's date; date and undo stay one tap away in the toast.
       const entry = { date: today(), note: "" };
-      const newVisits  = { ...visits, [park.id]: [...(visits[park.id] ?? []), entry] };
-      const newChecked = { ...checked, [park.id]: true };
       const newTotal   = totalChecked + 1;
       addVisit(park.id, entry.date);
 
-      // What did this check-in unlock?
-      const gains = [];
-      computeEarnedBadges(newVisits, newChecked).forEach(id => {
-        if (!earnedBadges.includes(id)) {
-          const b = BADGES.find(x => x.id === id);
-          if (b) gains.push({ icon:b.icon, title:tx.newBadgeTitle, sub:isJa?b.nameJa:b.name });
-        }
-      });
-      computeQuestProgress(newChecked).forEach((q, i) => {
-        if (q.complete && !questProgress[i]?.complete) gains.push({ icon:q.icon, title:tx.questDoneTitle, sub:isJa?q.nameJa:q.name });
-      });
-      const rTotal = parks.filter(p => p.region === park.region).length;
-      const rDone  = parks.filter(p => p.region === park.region && newChecked[p.id]).length;
-      if (rDone === rTotal) gains.push({ icon:"🗺️", title:tx.regionDone(isJa?park.regionJa:park.region), sub:`${rDone}/${rTotal}` });
-      if (MILESTONES.includes(newTotal) && !gains.some(g => g.title === tx.newBadgeTitle)) {
-        gains.unshift({ icon:newTotal===parks.length?"🏆":"🎉", title:tx.milestoneTitle(newTotal), sub:tx.milestoneSub });
-      }
-
-      const big = gains.length > 0;
-      setBurst({ key: uid(), big, ...origin });
-      vibrate(big ? [30, 40, 70] : 18);
-      if (big) setAchievements(a => [...a, ...gains.map(g => ({ ...g, id: uid() }))]);
+      setBurst({ key: uid(), big: false, ...origin });
+      vibrate(18);
       setPopId(park.id);
       setTimeout(() => setPopId(c => (c === park.id ? null : c)), 650);
       showToast({
@@ -256,6 +266,37 @@ export function App() {
       }, 6500);
     }
   };
+
+  // Celebrate whatever a change unlocked — check-in, added date, or a note that
+  // earns an experience badge. Each unlock is celebrated once per session, and
+  // profile switches / imports never trigger celebrations.
+  const prevSnap = useRef(null);
+  const celebrated = useRef(new Set());
+  const quietNext = useRef(false);
+  useEffect(() => {
+    const snap = {
+      profileId: activeProfile.id, total: totalChecked,
+      badges: new Set(earnedBadges), tags: new Set(earnedTagBadges),
+      quests: new Set(questProgress.filter(q=>q.complete).map(q=>q.id)),
+      regions: new Set(REGION_ORDER.filter(r => { const all=parks.filter(p=>p.region===r); return all.length && all.every(p=>checked[p.id]); })),
+    };
+    const prev = prevSnap.current;
+    prevSnap.current = snap;
+    if (!prev || prev.profileId !== snap.profileId || quietNext.current) { quietNext.current = false; return; }
+    const gains = [];
+    const once = (key, item) => { if (!celebrated.current.has(key)) { celebrated.current.add(key); gains.push(item); } };
+    const m = MILESTONES.find(n => prev.total < n && snap.total >= n);
+    if (m) once(`${snap.profileId}:m${m}`, { icon:m===parks.length?"🏆":"🎉", title:tx.milestoneTitle(m), sub:tx.milestoneSub });
+    snap.badges.forEach(id => { if (!prev.badges.has(id)) { const b=BADGES.find(x=>x.id===id); if (b) once(`${snap.profileId}:b${id}`, { icon:b.icon, title:tx.newBadgeTitle, sub:isJa?b.nameJa:b.name }); } });
+    snap.tags.forEach(id => { if (!prev.tags.has(id)) { const b=TAG_BADGES.find(x=>x.id===id); if (b) once(`${snap.profileId}:t${id}`, { icon:b.icon, title:tx.newBadgeTitle, sub:isJa?b.nameJa:b.name }); } });
+    snap.quests.forEach(id => { if (!prev.quests.has(id)) { const q=questProgress.find(x=>x.id===id); once(`${snap.profileId}:q${id}`, { icon:q.icon, title:tx.questDoneTitle, sub:isJa?q.nameJa:q.name }); } });
+    snap.regions.forEach(r => { if (!prev.regions.has(r)) { const s0=parks.find(p=>p.region===r); once(`${snap.profileId}:r${r}`, { icon:"🗺️", title:tx.regionDone(isJa?s0.regionJa:r), sub:"" }); } });
+    if (gains.length) {
+      setAchievements(a => [...a, ...gains.map(g => ({ ...g, id: uid() }))]);
+      setBurst({ key: uid(), big: true });
+      vibrate([30, 40, 70]);
+    }
+  }, [visits, activeProfile.id]);
 
   const resetAll=()=>{
     setConfirm({
@@ -304,8 +345,9 @@ export function App() {
   };
 
   // Backup: export/import handlers
-  const handleExport = () => {
-    exportStoreToFile(store);
+  const handleExport = async () => {
+    const result = await exportStoreToFile(store);
+    if (result === "cancelled") return;
     try { localStorage.setItem(BACKUP_KEY, String(Date.now())); } catch {}
     setBackupTick(t => t + 1);
     showToast({ icon:"💾", text: tx.exportSuccess });
@@ -318,6 +360,7 @@ export function App() {
         setConfirm({
           message: tx.importConfirm,
           onConfirm: () => {
+            quietNext.current = true;
             setStore(imported);
             setConfirm(null);
             setShowMenu(false);
@@ -390,12 +433,14 @@ export function App() {
                         padding:"12px 12px",borderRadius:8,fontSize:15,cursor:"pointer",fontFamily:"inherit",
                         background:sortMode===key?T.btnBgActive:"transparent",color:sortMode===key?T.accentText:T.textPrimary}}>{sortMode===key?"✓ ":""}{label}</button>
                     ))}
+                    <button onClick={sortNearest} style={{display:"block",width:"100%",textAlign:"left",border:"none",padding:"12px 12px",borderRadius:8,fontSize:15,cursor:"pointer",fontFamily:"inherit",
+                      background:sortMode==="near"?T.btnBgActive:"transparent",color:sortMode==="near"?T.accentText:T.textPrimary}}>{sortMode==="near"?"✓ ":"📍 "}{tx.sortNear}</button>
                   </div>
                 )}
               </div>
             </div>
             <div className="np-noscroll" role="group" aria-label={tx.statusFilter} style={{...S.page,padding:"10px 16px",display:"flex",gap:6,overflowX:"auto",flexWrap:"nowrap",alignItems:"center"}}>
-              {[["all",tx.filterAll,parks.length],["unvisited",tx.filterUnvisited,parks.length-totalChecked],["visited",tx.filterVisited,totalChecked]].map(([key,label,cnt])=>(
+              {[["all",tx.filterAll,parks.length],["unvisited",tx.filterUnvisited,parks.length-totalChecked],["visited",tx.filterVisited,totalChecked],["wish",`★ ${tx.filterWish}`,wish.size]].map(([key,label,cnt])=>(
                 <button key={key} onClick={()=>setStatusFilter(key)} aria-pressed={statusFilter===key} className="np-press" style={S.chip(statusFilter===key)}>{label} <span style={{opacity:.65}}>{cnt}</span></button>
               ))}
               <span aria-hidden="true" style={{width:1,alignSelf:"stretch",background:T.cardBorder,flexShrink:0,margin:"4px 2px"}}/>
@@ -436,7 +481,7 @@ export function App() {
             {filtering&&filteredParks.length>0&&<div style={{fontSize:12,color:T.mutedText,padding:"6px 6px 2px"}}>{tx.resultCount(filteredParks.length,parks.length)}</div>}
             {filteredParks.length===0&&(
               <div style={{textAlign:"center",padding:"40px 16px",color:T.mutedText,fontSize:14}}>
-                <div style={{fontSize:30,marginBottom:6}}>🧭</div>{tx.notFound}
+                <div style={{fontSize:30,marginBottom:6}}>{statusFilter==="wish"?"⭐":"🧭"}</div>{statusFilter==="wish"&&!search?tx.wishEmpty:tx.notFound}
                 <div style={{marginTop:12}}><button onClick={()=>{setSearch("");setStatusFilter("all");setActiveRegion("all");}} className="np-press" style={{minHeight:44,padding:"8px 18px",borderRadius:22,fontSize:14,cursor:"pointer",fontFamily:"inherit",background:"transparent",border:`1px solid ${T.cardBorder}`,color:T.accentText}}>{tx.clearSearch} / {tx.all}</button></div>
               </div>
             )}
@@ -456,7 +501,7 @@ export function App() {
                     </button>
                     <span style={{fontSize:24,flexShrink:0,width:30,textAlign:"center"}}>{park.emoji}</span>
                     <div style={{flex:1,minWidth:0,paddingLeft:4}}>
-                      <div style={{fontSize:16,color:isCheckedP?T.accentText:T.textPrimary,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{isJa?park.ja:park.name}</div>
+                      <div style={{fontSize:16,color:isCheckedP?T.accentText:T.textPrimary,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{isJa?park.ja:park.name}{wish.has(park.id)&&<span aria-label={tx.filterWish} style={{color:"#e0a830",marginLeft:6,fontSize:14}}>★</span>}</div>
                       <div style={{fontSize:12,color:T.mutedText,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                         {latestVisit
                           ? <>📅 {formatDate(latestVisit.date,isJa)}{visitCount>1&&<span style={{color:T.accentText}}> ×{visitCount}</span>} · {isJa?park.stateJa:park.state}</>
@@ -464,6 +509,7 @@ export function App() {
                       </div>
                       {latestVisit?.note&&<div style={{fontSize:12,color:T.textSecondary,marginTop:2,fontStyle:"italic",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>💬 {latestVisit.note}</div>}
                     </div>
+                    {sortMode==="near"&&here&&<span style={{fontSize:12,color:T.textSecondary,flexShrink:0,whiteSpace:"nowrap"}}>{distLabel(park)}</span>}
                     <span aria-hidden="true" style={{fontSize:20,color:T.mutedText,flexShrink:0}}>›</span>
                   </div>
                 );
@@ -477,7 +523,7 @@ export function App() {
       {tab==="map"&&(
         <main className="np-tab" style={{flex:1,display:"flex",flexDirection:"column",paddingTop:10}}>
           <div style={{padding:"0 16px 6px",fontSize:12,color:T.mutedText,textAlign:"center"}}>{tx.mapHint}</div>
-          <SVGMap parks={parks} checked={checked} visits={visits} isJa={isJa} selectedId={selectedPark?.id} onParkClick={p=>setSelectedPark(s=>s?.id===p.id?null:p)} hoveredId={hoveredMapId} setHoveredId={setHoveredMapId} themeColors={T}>
+          <SVGMap parks={parks} checked={checked} visits={visits} wish={wish} isJa={isJa} selectedId={selectedPark?.id} onParkClick={p=>setSelectedPark(s=>s?.id===p.id?null:p)} hoveredId={hoveredMapId} setHoveredId={setHoveredMapId} themeColors={T}>
           {selectedPark&&(
             <div key={selectedPark.id} className="np-tab" style={{margin:"0",background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:16,padding:"14px 14px 12px",boxShadow:"0 6px 20px rgba(0,0,0,.3)"}}>
               <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -565,7 +611,8 @@ export function App() {
       {/* Sheets & dialogs */}
       {showHelp&&<HelpModal tx={tx} themeColors={T} firstRun={firstRunHelp} onClose={closeHelp}/>}
       {sheetPark&&<ParkSheet key={sheetPark.id} T={T} tx={tx} isJa={isJa} park={sheetPark} dates={visits[sheetPark.id]??[]} visited={!!checked[sheetPark.id]}
-        onToggle={toggleCheck} onAdd={(date,note)=>addVisit(sheetPark.id,date,note)} onDelete={date=>removeVisit(sheetPark.id,date)}
+        wished={wish.has(sheetPark.id)} onWish={toggleWish}
+        onToggle={toggleCheck} onAdd={(date,note)=>addVisitChecked(sheetPark.id,date,note)} onDelete={date=>removeVisit(sheetPark.id,date)}
         onUpdate={(oldDate,newDate,note)=>updateVisit(sheetPark.id,oldDate,newDate,note)} onShowMap={showOnMap} onClose={()=>setSheetPark(null)}/>}
       {showMenu&&<MenuSheet T={T} tx={tx} isJa={isJa} profiles={store.profiles} activeId={store.activeId} siteTheme={siteTheme} lang={lang}
         onSwitch={switchProfile} onCreate={createProfile} onRename={renameProfile} onDelete={deleteProfile}

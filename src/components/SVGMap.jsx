@@ -7,7 +7,7 @@ const TAP_RADIUS_PX = 24;   // a tap selects the nearest pin within this many sc
 const DRAG_THRESHOLD_PX = 6; // movement beyond this is a pan, not a tap
 const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
 
-export function SVGMap({ parks, checked, visits, isJa, onParkClick, hoveredId, setHoveredId, themeColors, selectedId, children }) {
+export function SVGMap({ parks, checked, visits, wish, isJa, onParkClick, hoveredId, setHoveredId, themeColors, selectedId, children }) {
   const T = themeColors;
   const [zoom, setZoom] = useState(1);
   const [pan,  setPan]  = useState({x:0,y:0});
@@ -163,6 +163,7 @@ export function SVGMap({ parks, checked, visits, isJa, onParkClick, hoveredId, s
       <g key={park.id} style={{pointerEvents:"none"}}>
         {isSel && <circle cx={x} cy={y} r={r+5*px} fill="none" stroke={T.accentText} strokeWidth={2*px}/>}
         {isChk && <circle cx={x} cy={y} r={r+2.5*px} fill="none" stroke={T.pinVisitedRing} strokeWidth={1.5*px} opacity={0.6}/>}
+        {!isChk && wish?.has(park.id) && <circle cx={x} cy={y} r={r+2.5*px} fill="none" stroke="#e0a830" strokeWidth={2*px}/>}
         <circle cx={x+0.8*px} cy={y+0.8*px} r={r} fill="rgba(0,0,0,0.5)"/>
         <circle cx={x} cy={y} r={r} fill={isChk?T.pinVisited:T.pinUnvisited} stroke={isChk?T.pinVisitedBorder:T.pinUnvisitedBorder} strokeWidth={1.5*px}/>
         {isChk
@@ -227,6 +228,12 @@ export function SVGMap({ parks, checked, visits, isJa, onParkClick, hoveredId, s
           <span style={{width:12,height:12,borderRadius:"50%",background:T.pinUnvisited,border:`1px solid ${T.pinUnvisitedBorder}`,display:"inline-block"}}/>
           {isJa?"未訪問":"Not yet"}
         </span>
+        {wish?.size>0&&(
+          <span style={{display:"flex",alignItems:"center",gap:4}}>
+            <span style={{width:12,height:12,borderRadius:"50%",background:T.pinUnvisited,border:"2px solid #e0a830",display:"inline-block"}}/>
+            {isJa?"行きたい":"Want to go"}
+          </span>
+        )}
       </div>
 
       {/* Selected-park card (rendered by the parent) sits right under the map */}

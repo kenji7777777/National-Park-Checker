@@ -3,7 +3,7 @@ import { formatDate, gmapUrl, npsUrl, today } from "../utils";
 import { Sheet, SectionTitle } from "./Sheet";
 
 // Everything about one park: check-in, links, visit history (date + note editing).
-export function ParkSheet({ T, tx, isJa, park, dates, visited, onToggle, onAdd, onDelete, onUpdate, onShowMap, onClose }) {
+export function ParkSheet({ T, tx, isJa, park, dates, visited, wished, onWish, onToggle, onAdd, onDelete, onUpdate, onShowMap, onClose }) {
   const [adding, setAdding]       = useState(false);
   const [newDate, setNewDate]     = useState(today());
   const [newNote, setNewNote]     = useState("");
@@ -26,11 +26,17 @@ export function ParkSheet({ T, tx, isJa, park, dates, visited, onToggle, onAdd, 
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",gap:14}}>
         <div style={{width:60,height:60,flexShrink:0,borderRadius:16,background:T.cardBg,border:`1px solid ${visited?T.cardBorderActive:T.cardBorder}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>{park.emoji}</div>
-        <div style={{minWidth:0}}>
+        <div style={{minWidth:0,flex:1}}>
           <div style={{fontSize:20,color:T.textPrimary,lineHeight:1.25}}>{name}</div>
           <div style={{fontSize:12,color:T.mutedText,marginTop:3}}>{alt} · {isJa?park.stateJa:park.state}</div>
           <div style={{fontSize:12,color:T.mutedText,marginTop:2}}>{isJa?park.regionJa:park.region}</div>
         </div>
+        <button onClick={()=>onWish(park)} aria-pressed={wished} aria-label={tx.filterWish} className="np-press"
+          style={{flexShrink:0,minWidth:56,minHeight:56,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:1,borderRadius:14,cursor:"pointer",fontFamily:"inherit",
+            background:wished?"rgba(224,168,48,.15)":"transparent",border:`1px solid ${wished?"#e0a830":T.cardBorder}`,color:wished?"#e0a830":T.mutedText}}>
+          <span style={{fontSize:22,lineHeight:1}}>{wished?"★":"☆"}</span>
+          <span style={{fontSize:10}}>{tx.filterWish}</span>
+        </button>
       </div>
 
       {/* Status / check-in */}

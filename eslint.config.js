@@ -15,7 +15,7 @@ export default [
         clearTimeout: "readonly", Blob: "readonly", URL: "readonly", File: "readonly", FileReader: "readonly",
         fetch: "readonly", Image: "readonly", Date: "readonly", Math: "readonly", JSON: "readonly",
         encodeURIComponent: "readonly", requestAnimationFrame: "readonly", cancelAnimationFrame: "readonly",
-        performance: "readonly", Path2D: "readonly",
+        performance: "readonly", Path2D: "readonly", history: "readonly",
       },
     },
     rules: { "no-undef": "error", "no-dupe-keys": "error", "react/jsx-no-undef": "error", "react/jsx-uses-vars": "error", "react/jsx-uses-react": "error", "no-unused-vars": ["warn", { varsIgnorePattern: "^_", args: "none" }] },

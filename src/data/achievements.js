@@ -159,31 +159,36 @@ export function computeQuestProgress(checked) {
 export const TAG_BADGES = [
   { id:"stargazer", icon:"✨", name:"Stargazer", nameJa:"スターゲイザー",
     desc:"Log a visit mentioning stars or night sky", descJa:"星や夜空について記録する",
-    keywords:{en:["star","stars","night sky","milky way"], ja:["星","夜空","天の川"]} },
+    keywords:{en:["star","stars","starry","stargazing","night sky","milky way"], ja:["星","夜空","天の川"]} },
   { id:"backcountry", icon:"⛺", name:"Backcountry Master", nameJa:"バックカントリー・マスター",
     desc:"Log a visit mentioning camping", descJa:"キャンプ・テント泊について記録する",
-    keywords:{en:["camp","camping","tent"], ja:["キャンプ","テント","野営"]} },
+    keywords:{en:["camp","camped","camping","campsite","campground","tent"], ja:["キャンプ","テント","野営"]} },
   { id:"bark_ranger", icon:"🐾", name:"Bark Ranger", nameJa:"バーク・レンジャー",
     desc:"Log a visit mentioning your dog", descJa:"犬との訪問について記録する",
-    keywords:{en:["dog","puppy"], ja:["犬","わんこ","ワンコ"]} },
+    keywords:{en:["dog","dogs","puppy","pup"], ja:["犬","わんこ","ワンコ"]} },
   { id:"waterway", icon:"🛶", name:"Waterway Voyager", nameJa:"ウォーターウェイ・ボイジャー",
     desc:"Log a visit mentioning water, lake, or river", descJa:"湖や川など水にまつわる訪問を記録する",
-    keywords:{en:["lake","river","canoe","kayak","water","boat"], ja:["湖","川","カヌー","カヤック","水","ボート"]} },
+    keywords:{en:["lake","lakes","river","rivers","canoe","canoeing","kayak","kayaking","water","waterfall","boat","boating"], ja:["湖","川","カヌー","カヤック","水","ボート"]} },
   { id:"summit", icon:"⛰️", name:"Summit Seeker", nameJa:"サミット・シーカー",
     desc:"Log a visit mentioning a hike or summit", descJa:"登山・サミットについて記録する",
-    keywords:{en:["hike","hiking","summit","peak","trail"], ja:["登山","ハイキング","山頂","トレイル"]} },
+    keywords:{en:["hike","hiked","hiking","summit","peak","trail","trails"], ja:["登山","ハイキング","山頂","トレイル"]} },
   { id:"wildlife", icon:"🦌", name:"Wildlife Spotter", nameJa:"ワイルドライフ・スポッター",
     desc:"Log a visit mentioning wildlife", descJa:"野生動物について記録する",
-    keywords:{en:["bear","elk","moose","wildlife","animal"], ja:["クマ","熊","動物","野生"]} },
+    keywords:{en:["bear","bears","elk","moose","bison","deer","wildlife","animal","animals"], ja:["クマ","熊","動物","野生"]} },
 ];
 
+// English keywords match whole words only ("star" must not fire on "start");
+// Japanese keywords match anywhere since Japanese has no word spacing.
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const TAG_MATCHERS = TAG_BADGES.map(tb => ({
+  id: tb.id,
+  en: new RegExp(`\\b(?:${tb.keywords.en.map(escapeRe).join("|")})\\b`, "i"),
+  ja: tb.keywords.ja,
+}));
 export function computeTagBadges(visits) {
-  const allNotes = Object.values(visits).flat().map(v => (v.note || "").toLowerCase());
+  const allNotes = Object.values(visits).flat().map(v => v.note || "").filter(Boolean);
   if (allNotes.length === 0) return [];
-  return TAG_BADGES.filter(tb => {
-    const allKeywords = [...tb.keywords.en, ...tb.keywords.ja].map(k => k.toLowerCase());
-    return allNotes.some(note => allKeywords.some(kw => note.includes(kw)));
-  }).map(tb => tb.id);
+  return TAG_MATCHERS.filter(m => allNotes.some(note => m.en.test(note) || m.ja.some(kw => note.includes(kw)))).map(m => m.id);
 }
 
 // ── National Park Streak: longest run of parks visited on one trip ──

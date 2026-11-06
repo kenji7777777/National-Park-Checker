@@ -15,6 +15,16 @@ export function TimelineView({ parks, visits, isJa, themeColors, onParkClick }) 
     return entries.sort((a, b) => b.date.localeCompare(a.date));
   }, [parks, visits]);
 
+  // Parks visited for the first time in each year
+  const newByYear = useMemo(() => {
+    const first = {};
+    Object.entries(visits).forEach(([pid, arr]) => {
+      const d = (arr || []).map(v => v.date).sort()[0];
+      if (d) { const y = d.slice(0,4); first[y] = (first[y] || 0) + 1; }
+    });
+    return first;
+  }, [visits]);
+
   // Group by year
   const byYear = useMemo(() => {
     const groups = {};
@@ -48,7 +58,7 @@ export function TimelineView({ parks, visits, isJa, themeColors, onParkClick }) 
           <div style={{fontSize:20,color:T.accentText,fontWeight:600,marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
             <span>{year}</span>
             <div style={{flex:1,height:1,background:T.cardBorder}}/>
-            <span style={{fontSize:11,color:T.mutedText,fontWeight:400}}>{entries.length} {isJa?"件":entries.length===1?"visit":"visits"}</span>
+            <span style={{fontSize:12,color:T.mutedText,fontWeight:400}}>{entries.length} {isJa?"件":entries.length===1?"visit":"visits"}{newByYear[year]?(isJa?` · 新規${newByYear[year]}公園`:` · ${newByYear[year]} new`):""}</span>
           </div>
           <div style={{position:"relative",paddingLeft:20}}>
             {/* Vertical line */}

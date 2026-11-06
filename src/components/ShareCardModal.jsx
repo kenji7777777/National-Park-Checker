@@ -222,7 +222,7 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
     const miniMapH = drawMiniMap(ctx, cx, curY, "#0f1f0f", "#2a4a3a", "#7aae7a", "#1a2e1a", "#3a6a4a", "#5acc5a", "#4a6a4a", "Georgia, serif");
     curY += miniMapH + 40;
 
-    const nameBadgeY = Math.max(H - 120, curY);
+    const nameBadgeY = curY;
 
     drawNameBadge(ctx, cx, nameBadgeY, "👤", "#0f1f0f", "#3a6a4a", "#a8d4a8", "Georgia, serif");
     drawTimestamp(ctx, cx, nameBadgeY + 78, "#3a6a4a", "#0f1f0f", "#8ad4a0", "Georgia, serif");
@@ -231,7 +231,7 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
       ctx.strokeStyle = "#3a6a4a"; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.moveTo(cx-200, y); ctx.lineTo(cx+200, y); ctx.stroke();
     }
-    return Math.ceil(nameBadgeY + 78 + 36 + 40);
+    return Math.ceil(nameBadgeY + 78 + 36 + 110); // room for the frame/corner ornaments
   }
 
   // ══════════════════════════════════════════════════════
@@ -307,7 +307,7 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
     const miniMapH = drawMiniMap(ctx, cx, curY, "#0a1510", "#2a5a3a", "#4adc6a", "#152a18", "#3a7a4a", "#3adc5a", "#3a7a4a", "'Courier New', monospace");
     curY += miniMapH + 40;
 
-    const nameBadgeY = Math.max(H - 120, curY);
+    const nameBadgeY = curY;
 
     drawNameBadge(ctx, cx, nameBadgeY, "◉", "#0f1f14", "#3a7a4a", "#5adc7a", "'Courier New', monospace");
     drawTimestamp(ctx, cx, nameBadgeY + 78, "#3a7a4a", "#0f1f14", "#6adc8a", "'Courier New', monospace");
@@ -317,7 +317,7 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
       ctx.beginPath(); ctx.moveTo(cx-200, y); ctx.lineTo(cx+200, y); ctx.stroke();
       ctx.setLineDash([]);
     }
-    return Math.ceil(nameBadgeY + 78 + 36 + 40);
+    return Math.ceil(nameBadgeY + 78 + 36 + 110); // room for the frame/corner ornaments
   }
 
   // ══════════════════════════════════════════════════════
@@ -411,7 +411,7 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
     const miniMapH = drawMiniMap(ctx, cx, curY, "#dcc898", "#8a3a2a", "#8a3a2a", "#d4bc84", "#8a3a2a", "#c85a30", "#9a8858", "Georgia, serif");
     curY += miniMapH + 40;
 
-    const nameBadgeY = Math.max(H - 120, curY);
+    const nameBadgeY = curY;
 
     drawNameBadge(ctx, cx, nameBadgeY, "★", "#dcc898", "#8a3a2a", "#8a3a2a", "Georgia, serif");
     drawTimestamp(ctx, cx, nameBadgeY + 78, "#8a3a2a", "#dcc898", "#5a3a2a", "Georgia, serif");
@@ -420,7 +420,7 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
       ctx.strokeStyle = "#8a3a2a"; ctx.lineWidth = 3;
       ctx.beginPath(); ctx.moveTo(cx-200, y); ctx.lineTo(cx+200, y); ctx.stroke();
     }
-    return Math.ceil(nameBadgeY + 78 + 36 + 40);
+    return Math.ceil(nameBadgeY + 78 + 36 + 110); // room for the frame/corner ornaments
   }
 
   // ── Shared: catchphrase pill ──
@@ -775,13 +775,15 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const W = 1080, H = 2900; // tall enough for star hero field + earned titles + 2x2 grid + stats + streak + full badge showcase (up to 4 rows) + next-goal hint + mini map + name badge + timestamp, all dynamically positioned
-    canvas.width = W; canvas.height = H;
+    // Two passes: draw once on a tall canvas to measure the content, then size
+    // the canvas to fit and draw again so the frame hugs the content.
+    const W = 1080;
+    const draw = theme === "passport" ? drawPassport : theme === "topo" ? drawTopo : drawRetro;
+    canvas.width = W; canvas.height = 4200;
+    const H = Math.min(4200, draw(canvas.getContext("2d"), W, 4200));
+    canvas.height = H;
     const ctx = canvas.getContext("2d");
-
-    if (theme === "passport") drawPassport(ctx, W, H);
-    else if (theme === "topo") drawTopo(ctx, W, H);
-    else drawRetro(ctx, W, H);
+    draw(ctx, W, H);
 
     setImgUrl(canvas.toDataURL("image/png"));
   }, [theme, totalChecked, recentParks, regionStats, catchphrases, isJa, profile.name]);

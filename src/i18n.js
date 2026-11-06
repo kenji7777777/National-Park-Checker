@@ -53,6 +53,7 @@ export const i18n = {
     helpItems:[
       {icon:"✅", title:"Tick the box to check in", body:"Tap the checkbox next to a park to record it with today's date (Undo and Change date appear right away). Tap anywhere else on the row to see its visit dates and notes."},
       {icon:"🎲", title:"Not sure where next?", body:"Press 🎲 for a random park you haven't visited yet."},
+      {icon:"⭐", title:"Want-to-go list & nearest parks", body:"Tap ☆ in a park's details to save it, then filter with ★. In ⇅ sort, “Nearest first” uses your location to list the closest parks with distances."},
       {icon:"🗺", title:"Map", body:"Tap near a pin to select it; pinch or use + to zoom and see park names. Alaska and Hawaii are in the lower-left corner."},
       {icon:"🏅", title:"Badges & quests", body:"Visit more parks (and jot notes) to unlock badges and finish themed quests. Tap 🏅 at the top."},
       {icon:"📤", title:"Share card", body:"Turn your progress into a picture you can save or share."},
@@ -67,7 +68,11 @@ export const i18n = {
     markVisited:"Mark as visited (today)", checkIn:"Check in", uncheckAll:"Remove all visits for this park",
     editVisit:"Edit visit", save:"Save", visitDate:"Visit date", note:"Note", notePlaceholder:"Add a note (optional)",
     deleteVisit:"Delete this visit", addNoteHint:"Tap to add a note or change the date", addVisit:"Add",
-    details:"Details", statesShort:"states", badgesShort:"badges", questsShort:"quests",
+    details:"Details", statesShort:"states",
+    filterWish:"Want to go", wishAdded:(n)=>`Added ${n} to your want-to-go list`, wishRemoved:(n)=>`Removed ${n} from your want-to-go list`,
+    wishEmpty:"Tap ☆ in a park's details to save it here.",
+    sortNear:"Nearest first", locating:"Finding your location…", locationError:"Couldn't get your location. Check location permission for this site.",
+    dateExists:(d)=>`${d} is already logged for this park`, badgesShort:"badges", questsShort:"quests",
   },
   ja: {
     country:"アメリカ合衆国", title:"国立公園 チェックリスト", subtitle:"全64公園",
@@ -120,8 +125,9 @@ export const i18n = {
     helpTitle:"かんたんガイド", helpClose:"はじめる", helpAria:"ヘルプ",
     welcomeTitle:"ようこそ！", welcomeBody:"訪れたアメリカ国立公園を記録していくアプリです。使い方はこちら：",
     helpItems:[
-      {icon:"✅", title:"チェックボックスで記録", body:"公園の左のチェックボックスをタップすると今日の日付で記録されます（すぐ出るメッセージから「日付を変更」「元に戻す」もできます）。行のほかの部分をタップすると訪問日やメモを確認できます。"},
+      {icon:"✅", title:"チェックボックスで記録", body:"公園の左のチェックボックスをタップすると今日の日付で記録されます（すぐ出るメッセージから「日付を変更」「元に戻す」もできます）。行のほかの部分をタップすると詳細が開き、訪問日やメモを編集できます。"},
       {icon:"🎲", title:"次はどこ行く？", body:"🎲を押すと、まだ行っていない公園をランダムに提案します。"},
+      {icon:"⭐", title:"行きたいリストと近い順", body:"公園の詳細で☆を押すと行きたいリストに追加、★の絞り込みで一覧できます。⇅の並び替えの「近い順」では現在地から近い公園を距離つきで表示します。"},
       {icon:"🗺", title:"地図", body:"ピンの近くをタップで選択。ピンチや＋で拡大すると公園名が表示されます。アラスカとハワイは左下にあります。"},
       {icon:"🏅", title:"バッジとクエスト", body:"訪問を重ねる（メモも書く）とバッジが解除され、テーマ別クエストも進みます。上の🏅から確認できます。"},
       {icon:"📤", title:"シェアカード", body:"進捗を1枚の画像にして、保存・共有できます。"},
@@ -136,6 +142,10 @@ export const i18n = {
     markVisited:"訪問済みにする（今日）", checkIn:"記録する", uncheckAll:"この公園の記録をすべて削除",
     editVisit:"訪問を編集", save:"保存", visitDate:"訪問日", note:"メモ", notePlaceholder:"一言メモ（任意）",
     deleteVisit:"この訪問を削除", addNoteHint:"タップしてメモ追加・日付変更", addVisit:"追加",
-    details:"詳細", statesShort:"州", badgesShort:"バッジ", questsShort:"クエスト",
+    details:"詳細", statesShort:"州",
+    filterWish:"行きたい", wishAdded:(n)=>`${n}を行きたいリストに追加しました`, wishRemoved:(n)=>`${n}を行きたいリストから外しました`,
+    wishEmpty:"公園の詳細画面で☆を押すと、ここに集まります。",
+    sortNear:"近い順", locating:"現在地を取得しています…", locationError:"現在地を取得できませんでした。このサイトの位置情報の許可を確認してください。",
+    dateExists:(d)=>`${d}はすでに記録されています`, badgesShort:"バッジ", questsShort:"クエスト",
   },
 };

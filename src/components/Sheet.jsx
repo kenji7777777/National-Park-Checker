@@ -1,14 +1,29 @@
-import { useEffect } from "../react.js";
+import { useEffect, useRef } from "../react.js";
 
 // Bottom sheet used for every modal panel: slides up, dims the page,
-// closes on backdrop tap or Escape, and locks page scroll while open.
+// closes on backdrop tap, Escape or the phone's Back gesture, and locks page
+// scroll while open.
 export function Sheet({ T, onClose, label, children, maxWidth = 520, zIndex = 2000 }) {
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    const onKey = (e) => { if (e.key === "Escape") closeRef.current(); };
     window.addEventListener("keydown", onKey);
-    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", onKey); };
+    // Back gesture: push a history entry while open; popping it closes the sheet.
+    const token = Math.random().toString(36).slice(2);
+    let popped = false;
+    try { history.pushState({ npSheet: token }, ""); } catch {}
+    const onPop = () => { popped = true; closeRef.current(); };
+    window.addEventListener("popstate", onPop);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("popstate", onPop);
+      // Closed from the UI: drop our history entry so Back doesn't need two presses.
+      if (!popped && history.state?.npSheet === token) { try { history.back(); } catch {} }
+    };
   }, []);
   return (
     <div className="np-backdrop" onClick={onClose}
