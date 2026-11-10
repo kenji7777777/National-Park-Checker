@@ -174,18 +174,33 @@ export function SVGMap({ parks, checked, visits, wish, isJa, onParkClick, hovere
     );
   };
 
-  const renderLabel = ({ park, x, y }) => {
-    const isSel = selectedId === park.id, isHov = hoveredId === park.id;
-    if (!(showAllLabels || isSel || isHov)) return null;
-    const fs = (isSel ? 12 : 10.5) * px;
-    return (
-      <text key={`l${park.id}`} x={x} y={y - pinR - 4*px} fontSize={fs} textAnchor="middle"
-        fill={T.tooltipText} stroke={T.mapBg} strokeWidth={3*px} paintOrder="stroke" fontWeight={isSel?"bold":"normal"}
-        style={{userSelect:"none",pointerEvents:"none"}}>{name(park)}</text>
+  // Labels: selected / hovered first, then visited, want-to-go, the rest.
+  // A label is skipped when it would overlap one already placed or the zoom
+  // buttons, so zoomed-in clusters stay readable.
+  const textW = (str, fs) => [...str].reduce((w, ch) => w + (ch.charCodeAt(0) > 255 ? 1 : 0.58), 0) * fs;
+  const viewL = -pan.x/zoom, viewT = -pan.y/zoom, viewW = MAP_W/zoom, viewH = MAP_H/zoom;
+  const placedBoxes = [{ x1: viewL + viewW - 62*px, y1: viewT, x2: viewL + viewW, y2: viewT + (zoom>1?168:118)*px }];
+  const rank = (p) => selectedId===p.park.id ? 0 : hoveredId===p.park.id ? 1 : checked[p.park.id] ? 2 : wish?.has(p.park.id) ? 3 : 4;
+  const labels = [];
+  [...placed].sort((a,b) => rank(a) - rank(b)).forEach(p => {
+    const r = rank(p);
+    if (!(showAllLabels || r < 2)) return;
+    // Only label pins that are actually inside the visible part of the map
+    if (p.x < viewL || p.x > viewL + viewW || p.y < viewT || p.y > viewT + viewH) return;
+    const fs = (r === 0 ? 12 : 10.5) * px, str = name(p.park), w = textW(str, fs);
+    const cxl = clamp(p.x, viewL + w/2 + 3*px, viewL + viewW - w/2 - 3*px);
+    const base = p.y - pinR - 4*px;
+    const box = { x1: cxl - w/2 - 2*px, y1: base - fs, x2: cxl + w/2 + 2*px, y2: base + 3*px };
+    if (r >= 2 && placedBoxes.some(o => box.x1 < o.x2 && box.x2 > o.x1 && box.y1 < o.y2 && box.y2 > o.y1)) return;
+    placedBoxes.push(box);
+    labels.push(
+      <text key={`l${p.park.id}`} x={cxl} y={base} fontSize={fs} textAnchor="middle"
+        fill={T.tooltipText} stroke={T.mapBg} strokeWidth={3*px} paintOrder="stroke" fontWeight={r===0?"bold":"normal"}
+        style={{userSelect:"none",pointerEvents:"none"}}>{str}</text>
     );
-  };
+  });
 
-  const btnStyle = {width:40,height:40,borderRadius:8,background:"rgba(10,20,10,0.85)",border:`1px solid ${T.mapBorder}`,color:"#cfe3cf",fontSize:20,cursor:"pointer",lineHeight:1};
+  const btnStyle = {width:42,height:42,borderRadius:10,background:T.cardBgAlt,border:`1px solid ${T.mapBorder}`,color:T.accentText,fontSize:20,cursor:"pointer",lineHeight:1,boxShadow:"0 2px 8px rgba(0,0,0,.3)",fontFamily:"inherit"};
 
   return (
     <div style={{display:"flex",flexDirection:"column",gap:8,padding:"0 12px 8px"}}>
@@ -207,7 +222,7 @@ export function SVGMap({ parks, checked, visits, wish, isJa, onParkClick, hovere
             </g>
           ))}
           {placed.map(renderPin)}
-          {placed.map(renderLabel)}
+          {labels}
         </svg>
 
         {/* Zoom controls */}

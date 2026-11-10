@@ -1,30 +1,48 @@
 import { useEffect, useRef } from "../react.js";
 
-// Bottom sheet used for every modal panel: slides up, dims the page,
-// closes on backdrop tap, Escape or the phone's Back gesture, and locks page
-// scroll while open.
-export function Sheet({ T, onClose, label, children, maxWidth = 520, zIndex = 2000 }) {
+// ── Shared modal behaviour ─────────────────────────────────────────
+// Every open modal pushes one history entry, so the phone's Back gesture
+// closes the top-most modal instead of leaving the app. One listener and a
+// stack keep this correct when modals open and close in the same moment.
+const stack = [];   // [{ token, close }]
+let skipPops = 0;   // popstate events caused by our own history.back()
+let listening = false;
+function onPop() {
+  if (skipPops > 0) { skipPops--; return; }
+  const top = stack.pop();
+  if (top) top.close();
+}
+
+// Locks page scroll, closes on Escape and on the Back gesture.
+export function useModal(onClose) {
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
   useEffect(() => {
-    const prev = document.body.style.overflow;
+    if (!listening) { window.addEventListener("popstate", onPop); listening = true; }
+    const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKey = (e) => { if (e.key === "Escape") closeRef.current(); };
+    const entry = { token: Math.random().toString(36).slice(2), close: () => closeRef.current() };
+    stack.push(entry);
+    try { history.pushState({ npModal: entry.token }, ""); } catch {}
+    const onKey = (e) => { if (e.key === "Escape" && stack[stack.length-1] === entry) closeRef.current(); };
     window.addEventListener("keydown", onKey);
-    // Back gesture: push a history entry while open; popping it closes the sheet.
-    const token = Math.random().toString(36).slice(2);
-    let popped = false;
-    try { history.pushState({ npSheet: token }, ""); } catch {}
-    const onPop = () => { popped = true; closeRef.current(); };
-    window.addEventListener("popstate", onPop);
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener("popstate", onPop);
-      // Closed from the UI: drop our history entry so Back doesn't need two presses.
-      if (!popped && history.state?.npSheet === token) { try { history.back(); } catch {} }
+      const i = stack.indexOf(entry);
+      if (i >= 0) {
+        // Closed from the UI (not by Back): drop our history entry too.
+        stack.splice(i, 1);
+        skipPops++;
+        try { history.back(); } catch { skipPops--; }
+      }
     };
   }, []);
+}
+
+// Bottom sheet used for every modal panel: slides up and dims the page.
+export function Sheet({ T, onClose, label, children, maxWidth = 520, zIndex = 2000 }) {
+  useModal(onClose);
   return (
     <div className="np-backdrop" onClick={onClose}
       style={{position:"fixed",inset:0,background:"rgba(0,0,0,.62)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex}}>

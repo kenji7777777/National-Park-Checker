@@ -1,7 +1,7 @@
 import { useMemo } from "../react.js";
 
 import { computeTripStreaks } from "../data/achievements";
-import { MAP_H, MAP_W, US_OUTLINE, project } from "./mapData";
+import { REGION_ORDER } from "../data/parks";
 
 // ── Stats View: streaks, mini map silhouette, state progress ───────
 export function StatsView({ parks, visits, checked, isJa, themeColors, tx, onParkClick }) {
@@ -26,7 +26,11 @@ export function StatsView({ parks, visits, checked, isJa, themeColors, tx, onPar
     return startIso === endIso ? fmt(s) : `${fmt(s)} – ${fmt(e)}`;
   }
 
-  const sortedTrips = [...trips].sort((a,b)=>b.count-a.count).slice(0,5);
+  const multiTrips = trips.filter(t => t.count >= 2).sort((a,b)=>b.startDate.localeCompare(a.startDate)).slice(0,10);
+  const regionRows = REGION_ORDER.map(key => {
+    const all = parks.filter(p => p.region === key);
+    return { key, label: isJa ? all[0].regionJa : key, total: all.length, done: all.filter(p => checked[p.id]).length };
+  });
 
   return (
     <div style={{flex:1,padding:"4px 16px 24px",maxWidth:700,margin:"0 auto",width:"100%",boxSizing:"border-box"}}>
@@ -38,14 +42,14 @@ export function StatsView({ parks, visits, checked, isJa, themeColors, tx, onPar
           <>
             <div style={{fontSize:40,fontWeight:700,color:T.accentText,lineHeight:1}}>{longest.count}</div>
             <div style={{fontSize:13,color:T.textPrimary,marginTop:4}}>{tx.parksInOneTrip(longest.count)}</div>
-            <div style={{fontSize:11,color:T.mutedText,marginTop:6}}>{fmtRange(longest.startDate, longest.endDate)}</div>
+            <div style={{fontSize:12,color:T.mutedText,marginTop:6}}>{longest.startDate.slice(0,4)}{isJa?"年 ":" · "}{fmtRange(longest.startDate, longest.endDate)}</div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"center",marginTop:12}}>
               {longest.parkIds.map(pid => {
                 const p = parks.find(pp=>pp.id===pid);
                 if (!p) return null;
                 return (
                   <div key={pid} onClick={()=>onParkClick&&onParkClick(p)} style={{
-                    padding:"4px 10px",borderRadius:12,fontSize:11,cursor:"pointer",
+                    padding:"6px 12px",borderRadius:16,fontSize:12,cursor:"pointer",
                     background:T.chipBgActive,border:`1px solid ${T.chipBorderActive}`,color:T.chipTextActive,
                   }}>{p.emoji} {isJa?p.ja:p.name}</div>
                 );
@@ -57,43 +61,47 @@ export function StatsView({ parks, visits, checked, isJa, themeColors, tx, onPar
         )}
       </div>
 
-      {/* ── Mini map silhouette with visited pins ── */}
-      <div style={{marginBottom:20}}>
-        <div style={{fontSize:12,color:T.mutedText,marginBottom:8,letterSpacing:"0.05em"}}>🗺 {isJa?"訪問地図":"Visited Map"}</div>
-        <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{width:"100%",background:T.mapBg,borderRadius:10,border:`1px solid ${T.mapBorder}`,display:"block"}}>
-          <path d={US_OUTLINE} fill={T.mapLand} stroke={T.mapLandBorder} strokeWidth="1.5" strokeLinejoin="round"/>
-          {parks.filter(p=>!["Alaska","Hawaii","American Samoa","U.S. Virgin Islands"].includes(p.state)).map(park => {
-            const {x,y} = project(park.lat, park.lng);
-            if (x<0||x>MAP_W||y<0||y>MAP_H) return null;
-            const isChk = checked[park.id];
-            if (!isChk) return <circle key={park.id} cx={x} cy={y} r={2.5} fill={T.pinUnvisited} opacity={0.3}/>;
-            return (
-              <g key={park.id}>
-                <circle cx={x} cy={y} r={7} fill={T.pinVisited} opacity={0.25}/>
-                <circle cx={x} cy={y} r={4} fill={T.pinVisited} stroke={T.pinVisitedBorder} strokeWidth="1"/>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-
-      {/* ── Trip history (top 5 longest) ── */}
-      {sortedTrips.length > 0 && (
+      {/* ── Trips with 2+ parks, newest first ── */}
+      {multiTrips.length > 0 && (
         <div style={{marginBottom:20}}>
-          <div style={{fontSize:12,color:T.mutedText,marginBottom:8,letterSpacing:"0.05em"}}>📋 {isJa?"旅の記録":"Trip History"}</div>
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {sortedTrips.map((trip,i) => (
-              <div key={i} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:8}}>
-                <div>
-                  <div style={{fontSize:12,color:T.textPrimary}}>{tx.parksInOneTrip(trip.count)}</div>
-                  <div style={{fontSize:10,color:T.mutedText,marginTop:2}}>{fmtRange(trip.startDate, trip.endDate)}</div>
+          <div style={{fontSize:12,color:T.mutedText,marginBottom:8,letterSpacing:"0.05em"}}>🚗 {isJa?"旅の記録（2公園以上）":"Trips (2+ parks)"}</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {multiTrips.map(trip => (
+              <div key={trip.startDate} style={{padding:"12px 14px",background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",gap:8}}>
+                  <span style={{fontSize:14,color:T.textPrimary}}>{trip.startDate.slice(0,4)}{isJa?"年 ":" · "}{fmtRange(trip.startDate, trip.endDate)}</span>
+                  <span style={{fontSize:13,color:T.accentText,whiteSpace:"nowrap"}}>{trip.count>=4?"🔥 ":""}{isJa?`${trip.count}公園`:`${trip.count} parks`}</span>
                 </div>
-                <div style={{fontSize:18,color:T.accentText}}>{trip.count===1?"🏕️":trip.count<4?"🚗":"🔥"}</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
+                  {trip.parkIds.map(pid => {
+                    const p = parks.find(pp=>pp.id===pid);
+                    if (!p) return null;
+                    return <button key={pid} onClick={()=>onParkClick&&onParkClick(p)} className="np-press" style={{minHeight:32,padding:"3px 10px",borderRadius:16,fontSize:12,cursor:"pointer",fontFamily:"inherit",background:T.inputBg,border:`1px solid ${T.cardBorder}`,color:T.textSecondary}}>{p.emoji} {isJa?p.ja:p.name}</button>;
+                  })}
+                </div>
               </div>
             ))}
           </div>
         </div>
       )}
+
+      {/* ── Region progress ── */}
+      <div style={{marginBottom:20}}>
+        <div style={{fontSize:12,color:T.mutedText,marginBottom:8,letterSpacing:"0.05em"}}>🧭 {isJa?"地域別の達成率":"Progress by region"}</div>
+        <div style={{display:"flex",flexDirection:"column",gap:10,padding:"14px",background:T.cardBg,border:`1px solid ${T.cardBorder}`,borderRadius:12}}>
+          {regionRows.map(r => (
+            <div key={r.key}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}>
+                <span style={{color:r.done===r.total?T.accentText:T.textPrimary}}>{r.done===r.total?"✓ ":""}{r.label}</span>
+                <span style={{color:T.mutedText}}>{r.done}/{r.total}</span>
+              </div>
+              <div style={{height:6,background:T.progressTrack,borderRadius:3,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${(r.done/r.total)*100}%`,background:T.progressFill,borderRadius:3,transition:"width .5s ease"}}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* ── State progress ── */}
       <div>

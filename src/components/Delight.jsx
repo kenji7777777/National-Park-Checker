@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "../react.js";
+import { useModal } from "./Sheet";
 
 // ── Motion, feedback & onboarding helpers (from rev16) ─────────────
 export function prefersReducedMotion() {
@@ -101,6 +102,7 @@ export function ConfettiLayer({ burst, colors }) {
 
 // Welcome / how-to sheet (auto-opens once for brand-new users; reopen via ❓)
 export function HelpModal({ tx, themeColors: T, firstRun, onClose }) {
+  useModal(onClose);
   return (
     <div role="dialog" aria-modal="true" aria-label={tx.helpTitle}
       className="np-backdrop" style={{position:"fixed",inset:0,background:"rgba(0,0,0,.72)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:2600}}

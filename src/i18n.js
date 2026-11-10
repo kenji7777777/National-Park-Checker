@@ -1,7 +1,7 @@
 
 export const i18n = {
   en: {
-    country:"United States", title:"National Parks Checklist", subtitle:"All 64 Parks",
+    country:"United States", title:"National Parks Checklist", docTitle:"US National Parks Checklist", subtitle:"All 64 Parks",
     visited:"Visited", search:"Search name or state", all:"All",
     notFound:"No parks found", badge:(n)=>`🏕️ ${n} park${n===1?"":"s"} visited`,
     langBtn:"日本語", mapTab:"Map", listTab:"List", timelineTab:"Journal",
@@ -75,7 +75,7 @@ export const i18n = {
     dateExists:(d)=>`${d} is already logged for this park`, badgesShort:"badges", questsShort:"quests",
   },
   ja: {
-    country:"アメリカ合衆国", title:"国立公園 チェックリスト", subtitle:"全64公園",
+    country:"アメリカ合衆国", title:"国立公園 チェックリスト", docTitle:"アメリカ国立公園チェックリスト", subtitle:"全64公園",
     visited:"訪問済み", search:"公園名・州名で検索", all:"全て",
     notFound:"見つかりませんでした", badge:(n)=>`🏕️ ${n} パーク訪問済み`,
     langBtn:"English", mapTab:"地図", listTab:"リスト", timelineTab:"記録",

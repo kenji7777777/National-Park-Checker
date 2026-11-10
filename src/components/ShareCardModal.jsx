@@ -3,9 +3,11 @@ import { REGION_ORDER, parks } from "../data/parks";
 import { BADGES, TAG_BADGES, computeTripStreaks } from "../data/achievements";
 import { today } from "../utils";
 import { MAP_H, MAP_W, US_OUTLINE, project } from "./mapData";
+import { useModal } from "./Sheet";
 
 // ── Share Card (Canvas-generated shareable image) ──────────────────
 export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose, earnedBadgeIds=[], earnedTagIds=[], questProgress=[] }) {
+  useModal(onClose);
   const canvasRef = useRef(null);
   const [imgUrl, setImgUrl] = useState(null);
   const [theme, setTheme] = useState("passport"); // passport | topo | retro
@@ -185,7 +187,7 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
     // Star field drawn FIRST as a dimmed hero backdrop, then the big number is
     // stamped on top of it so the progress count visually "sits within" the stars.
     const starFieldY = 138;
-    const starFieldH = drawStarField(ctx, cx, starFieldY, "#5acc5a", "#4a8a5a", "#3a6a4a");
+    const starFieldH = drawStarField(ctx, cx, starFieldY, "#5acc5a", "#4a8a5a", "#3a6a4a", "rgba(19,36,21,0.92)");
 
     ctx.fillStyle = "#e8f0e0"; ctx.font = "700 180px Georgia, serif";
     ctx.fillText(String(totalChecked), cx, starFieldY + starFieldH*0.56 + 60);
@@ -269,7 +271,7 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
     // Star field drawn FIRST as a dimmed hero backdrop, then the elevation-style
     // number is stamped on top of it.
     const starFieldY = 130;
-    const starFieldH = drawStarField(ctx, cx, starFieldY, "#3adc5a", "#4a9a5a", "#3a7a4a");
+    const starFieldH = drawStarField(ctx, cx, starFieldY, "#3adc5a", "#4a9a5a", "#3a7a4a", "rgba(13,23,18,0.92)");
 
     ctx.fillStyle = "#eafbea"; ctx.font = "800 180px 'Courier New', monospace";
     ctx.fillText(String(totalChecked), cx, starFieldY + starFieldH*0.56 + 60);
@@ -373,7 +375,7 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
     // Star field drawn FIRST as a dimmed hero backdrop, then the big number is
     // stamped on top of it.
     const starFieldY = 144;
-    const starFieldH = drawStarField(ctx, cx, starFieldY, "#c85a30", "#a86840", "#8a3a2a");
+    const starFieldH = drawStarField(ctx, cx, starFieldY, "#c85a30", "#a86840", "#8a3a2a", "rgba(232,213,168,0.92)");
 
     ctx.fillStyle = "#8a3a2a"; ctx.font = "900 190px Georgia, serif";
     ctx.fillText(String(totalChecked), cx, starFieldY + starFieldH*0.56 + 60);
@@ -591,10 +593,10 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
 
   // ── Shared: big star field as a HERO BACKGROUND (large, dimmed stars spanning
   // near-full width; the big number is drawn on top of this by the caller) ──
-  function drawStarField(ctx, cx, y, fillColor, emptyColor, strokeColor) {
+  function drawStarField(ctx, cx, y, fillColor, emptyColor, strokeColor, haloColor) {
     const total = parks.length, visitedCount = totalChecked;
-    const cols = 9, rows = Math.ceil(total / cols);
-    const starR = 24, cellW = 108, cellH = 70;
+    const cols = [8, 9, 10].find(c => total % c === 0) || 9, rows = Math.ceil(total / cols);
+    const starR = 24, cellW = Math.floor(972 / cols), cellH = 70;
     const gridW = cols * cellW;
     const startX = cx - gridW/2 + cellW/2;
     for (let i = 0; i < total; i++) {
@@ -606,6 +608,16 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
       drawStar(ctx, x, sy, starR, filled, fillColor, emptyColor, strokeColor);
       ctx.globalAlpha = 1;
     }
+    // Fade the stars out behind the big number and its caption (soft ellipse)
+    const R = 190;
+    ctx.save();
+    ctx.translate(cx, y + rows * cellH * 0.56 + 25);
+    ctx.scale(1.6, 1);
+    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, R);
+    halo.addColorStop(0, haloColor); halo.addColorStop(0.6, haloColor); halo.addColorStop(1, haloColor.replace(/[\d.]+\)$/, "0)"));
+    ctx.fillStyle = halo;
+    ctx.fillRect(-R, -R, R*2, R*2);
+    ctx.restore();
     return rows * cellH;
   }
 
@@ -812,14 +824,14 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
   };
 
   return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2500,padding:16,overflowY:"auto"}} onClick={onClose}>
+    <div className="np-backdrop" style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",display:"flex",alignItems:"flex-start",justifyContent:"center",zIndex:2500,padding:"calc(12px + env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom))",overflowY:"auto",overscrollBehavior:"contain"}} onClick={onClose}>
       <div onClick={e=>e.stopPropagation()} style={{background:T.cardBg,border:`1px solid ${T.headerBorder}`,borderRadius:16,padding:16,maxWidth:420,width:"100%",margin:"auto"}}>
 
         {/* Theme selector */}
         <div style={{display:"flex",gap:6,marginBottom:12}}>
           {Object.entries(themeLabels).map(([key,label]) => (
             <button key={key} onClick={()=>setTheme(key)} style={{
-              flex:1, padding:"7px 4px", borderRadius:8, fontSize:11, cursor:"pointer", fontFamily:"inherit",
+              flex:1, minHeight:40, padding:"7px 4px", borderRadius:10, fontSize:12, cursor:"pointer", fontFamily:"inherit",
               background: theme===key?T.btnBgActive:"transparent",
               border:`1px solid ${theme===key?T.btnBorderActive:T.inputBorder}`,
               color: theme===key?T.accentText:T.mutedText,
@@ -827,15 +839,15 @@ export function ShareCardModal({ T, profile, visits, checked, isJa, tx, onClose,
           ))}
         </div>
 
-        <canvas ref={canvasRef} style={{width:"100%",borderRadius:10,display:"block"}} />
-        <div style={{display:"flex",gap:8,marginTop:14}}>
-          <button onClick={handleShare} style={{flex:1,padding:"12px",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,borderRadius:8,color:T.accentText,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
+        <div style={{display:"flex",gap:8,marginBottom:12}}>
+          <button onClick={handleShare} className="np-press" style={{flex:1,minHeight:46,background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,borderRadius:12,color:T.accentText,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>
             {(typeof navigator!=="undefined"&&navigator.share) ? (isJa?"📤 共有":"📤 Share") : (isJa?"⬇ 保存":"⬇ Save")}
           </button>
-          <button onClick={onClose} style={{padding:"12px 20px",background:"transparent",border:`1px solid ${T.inputBorder}`,borderRadius:8,color:T.mutedText,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>
-            {tx.cancel}
+          <button onClick={onClose} className="np-press" style={{minHeight:46,padding:"0 20px",background:"transparent",border:`1px solid ${T.inputBorder}`,borderRadius:12,color:T.mutedText,fontSize:15,cursor:"pointer",fontFamily:"inherit"}}>
+            {isJa?"閉じる":"Close"}
           </button>
         </div>
+        <canvas ref={canvasRef} style={{width:"100%",borderRadius:10,display:"block"}} />
       </div>
     </div>
   );

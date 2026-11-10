@@ -20,7 +20,10 @@ const MILESTONES = [5, 10, 15, 20, 30, 40, 50, parks.length];
 // ── Main App ──────────────────────────────────────────────────────
 export function App() {
   const [store,         setStore]         = useState(() => initStore());
-  const [lang,          setLang]          = useState(() => { try { return localStorage.getItem(LANG_KEY)||"en"; } catch { return "en"; } });
+  const [lang,          setLang]          = useState(() => {
+    const device = (typeof navigator !== "undefined" && /^ja\b/i.test(navigator.language || "")) ? "ja" : "en";
+    try { return localStorage.getItem(LANG_KEY) || device; } catch { return device; }
+  });
   const [siteTheme,     setSiteTheme]     = useState(() => { try { return localStorage.getItem(THEME_KEY)||"passport"; } catch { return "passport"; } });
   const [tab,           setTab]           = useState("list");
   const [activeRegion,  setActiveRegion]  = useState("all");
@@ -51,7 +54,13 @@ export function App() {
   const tx   = i18n[lang] || i18n.en;
   const T    = THEMES[siteTheme] || THEMES.passport;
 
-  useEffect(() => { try { localStorage.setItem(THEME_KEY, siteTheme); } catch {} }, [siteTheme]);
+  useEffect(() => {
+    try { localStorage.setItem(THEME_KEY, siteTheme); } catch {}
+    // Status bar / browser chrome follows the theme
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", T.themeColor);
+    document.body.style.background = T.bg;
+  }, [siteTheme]);
+  useEffect(() => { document.documentElement.lang = lang; document.title = tx.docTitle; }, [lang]);
 
   // Persist
   useEffect(() => { saveData(store); }, [store]);
@@ -325,7 +334,7 @@ export function App() {
   // Profile actions
   const createProfile=(name)=>{
     const id=uid();
-    setStore(prev=>({...prev, profiles:[...prev.profiles,{id,name,visits:{}}], activeId:id}));
+    setStore(prev=>({...prev, profiles:[...prev.profiles,{id,name,visits:{},wish:[]}], activeId:id}));
   };
   const switchProfile=(id)=>setStore(prev=>({...prev,activeId:id}));
   const renameProfile=(id,name)=>setStore(prev=>({...prev,profiles:prev.profiles.map(p=>p.id===id?{...p,name}:p)}));
@@ -425,6 +434,7 @@ export function App() {
               <div style={{position:"relative",flexShrink:0}}>
                 <button onClick={()=>setShowSortMenu(s=>!s)} aria-label={tx.sortBy} aria-expanded={showSortMenu} className="np-press"
                   style={{width:44,height:44,background:sortMode!=="az"?T.btnBgActive:T.inputBg,border:`1px solid ${sortMode!=="az"?T.btnBorderActive:T.inputBorder}`,borderRadius:12,color:sortMode!=="az"?T.accentText:T.mutedText,fontSize:18,cursor:"pointer",fontFamily:"inherit"}}>⇅</button>
+                {showSortMenu&&<div onClick={()=>setShowSortMenu(false)} style={{position:"fixed",inset:0,zIndex:9}}/>}
                 {showSortMenu&&(
                   <div className="np-tab" style={{position:"absolute",top:"110%",right:0,background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:12,padding:6,zIndex:10,minWidth:190,boxShadow:"0 8px 24px rgba(0,0,0,.45)"}}>
                     <div style={{fontSize:11,color:T.mutedText,padding:"6px 10px 4px"}}>{tx.sortBy}</div>
@@ -467,11 +477,15 @@ export function App() {
           {/* Backup reminder */}
           {showBackupNudge&&(
             <div style={{...S.page,padding:"12px 16px 0"}}>
-              <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:14,padding:"12px 14px"}}>
-                <span style={{fontSize:20}}>💾</span>
-                <span style={{flex:1,minWidth:170,fontSize:13,color:T.textSecondary,lineHeight:1.5}}>{tx.backupNudge}</span>
-                <button onClick={handleExport} className="np-press" style={{minHeight:40,padding:"8px 14px",borderRadius:20,fontSize:13,cursor:"pointer",fontFamily:"inherit",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,color:T.accentText}}>{tx.backupNow}</button>
-                <button onClick={snoozeBackup} style={{minHeight:40,padding:"8px 10px",borderRadius:20,fontSize:13,cursor:"pointer",fontFamily:"inherit",background:"transparent",border:"none",color:T.mutedText}}>{tx.later}</button>
+              <div style={{background:T.cardBgAlt,border:`1px solid ${T.cardBorderActive}`,borderRadius:14,padding:"12px 14px"}}>
+                <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                  <span style={{fontSize:20}}>💾</span>
+                  <span style={{flex:1,fontSize:13,color:T.textSecondary,lineHeight:1.5}}>{tx.backupNudge}</span>
+                </div>
+                <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:8}}>
+                  <button onClick={snoozeBackup} style={{minHeight:40,padding:"8px 14px",borderRadius:20,fontSize:13,cursor:"pointer",fontFamily:"inherit",background:"transparent",border:"none",color:T.mutedText}}>{tx.later}</button>
+                  <button onClick={handleExport} className="np-press" style={{minHeight:40,padding:"8px 18px",borderRadius:20,fontSize:13,cursor:"pointer",fontFamily:"inherit",background:T.btnBgActive,border:`1px solid ${T.btnBorderActive}`,color:T.accentText}}>{tx.backupNow}</button>
+                </div>
               </div>
             </div>
           )}
